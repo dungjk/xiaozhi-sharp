@@ -9,7 +9,7 @@ namespace XiaoZhiSharp.Services
     public interface ICameraService
     {
         /// <summary>
-        /// 拍照并获取图像数据
+        /// Take pictures and obtain image data
         /// </summary>
         Task<byte[]?> CapturePhotoAsync();
     }

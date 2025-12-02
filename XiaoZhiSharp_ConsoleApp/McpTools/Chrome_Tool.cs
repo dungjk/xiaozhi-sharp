@@ -12,7 +12,7 @@ namespace XiaoZhiSharp_ConsoleApp.McpTools
     [McpServerToolType]
     public sealed class Chrome_Tool
     {
-        [McpServerTool, Description("打开网站")]
+        [McpServerTool, Description("Open the website")]
         public static string OpenUrl(string url)
         {
             return OpenUrlInChrome(url);
@@ -22,22 +22,22 @@ namespace XiaoZhiSharp_ConsoleApp.McpTools
         {
             try
             {
-                // 如果URL为空，使用默认主页
+                // If the URL is empty, use the default homepage.
                 if (string.IsNullOrEmpty(url))
                     url = "https://www.google.com";
 
-                // 在Windows上，使用Process.Start()直接打开URL
-                // 系统会自动选择默认浏览器
+                // On Windows, use Process.Start() to directly open the URL
+                // The system will automatically select the default browser
                 Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
-                return "网站打开成功";
+                return "Website opened successfully";
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"打开浏览器时出错: {ex.Message}");
+                Console.WriteLine($"Error opening browser: {ex.Message}");
 
-                // 如果上述方法失败，尝试直接启动Chrome
+                // If the above methods fail, try launching Chrome directly.
                 //TryOpenChromeDirectly(url);
-                return "网站打开失败";
+                return "Website failed to open";
             }
         }
     }

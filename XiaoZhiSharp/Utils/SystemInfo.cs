@@ -10,7 +10,7 @@ namespace XiaoZhiSharp.Utils
     public class SystemInfo
     {
         /// <summary>
-        /// 获取 MAC 地址
+        /// Get MAC address
         /// </summary>
         /// <returns></returns>
         public static string GetMacAddress()
@@ -19,7 +19,7 @@ namespace XiaoZhiSharp.Utils
 
             foreach (NetworkInterface nic in NetworkInterface.GetAllNetworkInterfaces())
             {
-                // 仅考虑以太网、无线局域网和虚拟专用网络等常用接口类型
+                // Only common interface types such as Ethernet, WLAN, and VPN are considered.
                 if (nic.OperationalStatus == OperationalStatus.Up &&
                     (nic.NetworkInterfaceType == NetworkInterfaceType.Ethernet ||
                      nic.NetworkInterfaceType == NetworkInterfaceType.Wireless80211 ||
@@ -35,7 +35,7 @@ namespace XiaoZhiSharp.Utils
                             macAddresses += ":";
                         }
                     }
-                    break; // 通常只取第一个符合条件的 MAC 地址
+                    break; // Typically, only the first MAC address that meets the criteria is selected.
                 }
             }
 
@@ -43,18 +43,18 @@ namespace XiaoZhiSharp.Utils
         }
 
         /// <summary>
-        /// 生成客户端UUID（UUID v4格式）
+        /// Generate client UUID (UUID v4 format)
         /// </summary>
-        /// <returns>UUID字符串</returns>
+        /// <returns>UUID string</returns>
         public static string GenerateClientId()
         {
             return Guid.NewGuid().ToString();
         }
 
         /// <summary>
-        /// 获取应用程序版本
+        /// Get application version
         /// </summary>
-        /// <returns>版本字符串</returns>
+        /// <returns>Version string</returns>
         public static string GetApplicationVersion()
         {
             var assembly = System.Reflection.Assembly.GetExecutingAssembly();
@@ -63,11 +63,11 @@ namespace XiaoZhiSharp.Utils
         }
 
         /// <summary>
-        /// 获取User-Agent字符串
-        /// </summary>
-        /// <param name="appName">应用名称</param>
-        /// <param name="version">版本号</param>
-        /// <returns>User-Agent字符串</returns>
+        // Get the User-Agent string
+        // </summary>
+        // <param name="appName">Application Name</param>
+        // <param name="version">Version Number</param>
+        // <returns>User-Agent string</returns>
         public static string GetUserAgent(string appName = "xiaozhi-sharp", string? version = null)
         {
             version ??= GetApplicationVersion();

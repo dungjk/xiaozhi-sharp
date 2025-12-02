@@ -10,7 +10,7 @@ namespace XiaoZhiSharp.Services
             var client = new RestClient(apiUrl);
             var request = new RestRequest("", Method.Post);
 
-            // 添加请求头和图像数据
+            // Add request headers and image data
             request.AddHeader("Device-Id", deviceId);
             request.AddHeader("Client-Id", clientId);
             if(!string.IsNullOrEmpty(token))

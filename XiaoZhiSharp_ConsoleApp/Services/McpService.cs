@@ -13,7 +13,8 @@ namespace XiaoZhiSharp_ConsoleApp.Services
     {
         private static IHost? _host;
         private static IMcpClient _mcpClient;
-        public McpService() {
+        public McpService()
+        {
             var builder = Host.CreateApplicationBuilder();
 
             var mcpBuilder = builder.Services
@@ -38,19 +39,19 @@ namespace XiaoZhiSharp_ConsoleApp.Services
                     _mcpClient = await McpClientFactory.CreateAsync(clientTransport);
                 }
 
-                dynamic? mcp = Newtonsoft.Json.JsonConvert.DeserializeObject<dynamic>(message);
-                if (mcp == null)
+                JsonNode? root = JsonNode.Parse(message);
+                if (root == null)
                     return string.Empty;
 
-                JsonNode? root = JsonNode.Parse(message);
-
-                if (mcp.method == "initialize")
+                var mcpMethod = root["method"]?.GetValue<string>() ?? string.Empty;
+                var mcpId = root["id"]?.GetValue<long>() ?? 0;
+                if (mcpMethod == "initialize")
                 {
                     Global.McpVisionUrl = root?["params"]?["capabilities"]?["vision"]?["url"]?.GetValue<string>();
                     Global.McpVisionToken = root?["params"]?["capabilities"]?["vision"]?["token"]?.GetValue<string>();
 
 
-                    // 处理初始化请求
+                    // Handling initialization requests
                     var resultData = new
                     {
                         protocolVersion = "2024-11-05",
@@ -65,7 +66,7 @@ namespace XiaoZhiSharp_ConsoleApp.Services
                     JsonNode resultNode = JsonSerializer.SerializeToNode(resultData);
                     JsonRpcResponse? response = new JsonRpcResponse()
                     {
-                        Id = new RequestId((long)mcp.id),
+                        Id = new RequestId(mcpId),
                         JsonRpc = "2.0",
                         Result = resultNode
                     };
@@ -74,9 +75,9 @@ namespace XiaoZhiSharp_ConsoleApp.Services
 
                 }
 
-                if (mcp.method == "tools/list")
+                if (mcpMethod == "tools/list")
                 {
-                    // 处理工具列表请求
+                    // Processing tool list request
                     var tools = await _mcpClient.ListToolsAsync();
                     List<Tool> toolsList = new List<Tool>();
                     foreach (var item in tools)
@@ -92,7 +93,7 @@ namespace XiaoZhiSharp_ConsoleApp.Services
                     JsonNode resultNode = JsonSerializer.SerializeToNode(resultData);
                     JsonRpcResponse? response = new JsonRpcResponse()
                     {
-                        Id = new RequestId((long)mcp.id),
+                        Id = new RequestId(mcpId),
                         JsonRpc = "2.0",
                         Result = resultNode
                     };
@@ -105,9 +106,9 @@ namespace XiaoZhiSharp_ConsoleApp.Services
                     return JsonSerializer.Serialize(response, options);
                 }
 
-                if (mcp.method == "tools/call")
+                if (mcpMethod == "tools/call")
                 {
-                    // 处理工具调用请求
+                    // Processing tool call requests
                     //JsonNode? root = JsonNode.Parse(message);
 
                     string? name = root?["params"]?["name"]?.GetValue<string>();
@@ -123,7 +124,7 @@ namespace XiaoZhiSharp_ConsoleApp.Services
                     JsonNode jsonNode = JsonSerializer.SerializeToNode(callToolResponse);
                     JsonRpcResponse? response = new JsonRpcResponse()
                     {
-                        Id = new RequestId((long)mcp.id),
+                        Id = new RequestId(mcpId),
                         JsonRpc = "2.0",
                         Result = jsonNode
                     };
@@ -137,7 +138,7 @@ namespace XiaoZhiSharp_ConsoleApp.Services
             }
             catch (Exception ex)
             {
-                string errorMessage = $"MCP处理异常: {ex.Message}";
+                string errorMessage = $"MCP handles exceptions: {ex.Message}";
             }
 
             return string.Empty;

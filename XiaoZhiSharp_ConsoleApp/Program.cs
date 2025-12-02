@@ -1,47 +1,37 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using ModelContextProtocol.Client;
-using ModelContextProtocol.Protocol;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using System.IO.Pipelines;
-using System.Net.NetworkInformation;
-using System.Text.Encodings.Web;
-using System.Text.Json;
-using System.Text.Json.Nodes;
+﻿using Microsoft.Extensions.Hosting;
 using XiaoZhiSharp;
-using XiaoZhiSharp_ConsoleApp.McpTools;
-using XiaoZhiSharp.Protocols;
-using XiaoZhiSharp.Services;
 using XiaoZhiSharp.Utils;
 using XiaoZhiSharp.Models;
 using XiaoZhiSharp_ConsoleApp.Services;
+using System.Text;
 
 class Program
 {
     private static XiaoZhiAgent _agent;
     private static McpService _mcpService;
-    private static string _audioMode = ""; 
+    private static string _audioMode = "";
     static async Task Main(string[] args)
     {
+        Console.OutputEncoding = Encoding.UTF8;
+
         var builder = Host.CreateApplicationBuilder(args);
 
         Console.ForegroundColor = ConsoleColor.Green;
-        Console.Title = "小智XiaoZhiSharp客户端";
+        Console.Title = "XiaoZhiSharp client";
         string logoAndCopyright = @"
 ========================================================================
-欢迎使用“小智XiaoZhiSharp客户端” ！
+Welcome to the XiaoZhiSharp client!
 
-当前功能：
-1. 语音消息 输入回车：开始录音；再次输入回车：结束录音
-   注意：CapsLock键也可以控制录音状态，按下CapsLock开始录音，再次按下结束录音
-   录音结束后会自动发送语音消息到服务器，服务器会返回语音识别结果
-2. 文字消息 可以随意输入文字对话
-3. 全量往返协议输出，方便调试
+Current Features:
+1. Voice Messages: Press Enter to start recording; press Enter again to stop recording.
+Note: The Caps Lock key can also control recording. Press Caps Lock to start recording, press it again to stop recording.
+After recording, the voice message will be automatically sent to the server, which will return the speech recognition result.
+2. Text Messages: You can freely enter text messages for conversation.
+3. Full round-trip protocol output for easy debugging.
 
-要是你在使用中有啥想法或者遇到问题，别犹豫，找我们哟：
-微信：Zhu-Lige       电子邮箱：zhuLige@qq.com
-有任何动态请大家关注 https://github.com/zhulige/xiaozhi-sharp
+If you have any thoughts or encounter any problems while using it, don't hesitate to contact us:
+WeChat: Zhu-Lige Email: zhuLige@qq.com
+For any updates, please follow https://github.com/zhulige/xiaozhi-sharp
 ========================================================================";
         Console.WriteLine(logoAndCopyright);
         Console.ForegroundColor = ConsoleColor.White;
@@ -51,7 +41,7 @@ class Program
 
         _mcpService = new McpService();
 
-        
+
         _agent = new XiaoZhiAgent();
         //XiaoZhiSharp.Global.SampleRate_WaveOut = 24000;
         //_agent.WsUrl = "wss://coze.nbee.net/xiaozhi/v1/"; 
@@ -59,10 +49,10 @@ class Program
         //_agent.OnAudioPcmEvent =
         _agent.OnMessageEvent += Agent_OnMessageEvent;
         _agent.OnOtaEvent += Agent_OnOtaEvent;
-        LogConsole.InfoLine($"初始OTA URL: {_agent.OtaUrl}");
-        LogConsole.InfoLine($"初始WebSocket URL: {_agent.WsUrl}");
-        LogConsole.InfoLine($"设备ID: {_agent.DeviceId}");
-        LogConsole.InfoLine($"客户端ID: {_agent.ClientId}");
+        LogConsole.InfoLine($"Initial OTA URL: {_agent.OtaUrl}");
+        LogConsole.InfoLine($"Initial WebSocket URL: {_agent.WsUrl}");
+        LogConsole.InfoLine($"Device ID: {_agent.DeviceId}");
+        LogConsole.InfoLine($"Client ID: {_agent.ClientId}");
         LogConsole.InfoLine($"User-Agent: {_agent.UserAgent}");
         await _agent.Start();
 
@@ -70,20 +60,20 @@ class Program
         {
             while (true)
             {
-                if (_agent.ConnectState != System.Net.WebSockets.WebSocketState.Open) { 
+                if (_agent.ConnectState != System.Net.WebSockets.WebSocketState.Open)
+                {
                     await _agent.Restart();
-                    LogConsole.InfoLine("服务器重连...");
+                    LogConsole.InfoLine("Server reconnection...");
                     await Task.Delay(10000);
                 }
 
                 bool isCapsLockOn = Console.CapsLock;
-                //Console.WriteLine($"当前 Caps Lock 状态: {(isCapsLockOn ? "开启" : "关闭")}");
                 if (isCapsLockOn)
                 {
                     if (_agent.IsRecording == false)
                     {
                         _audioMode = "manual";
-                        LogConsole.InfoLine("开始录音... 再次按Caps键结束录音");
+                        LogConsole.InfoLine("Start recording... Press the Caps Lock button again to stop recording.");
                         await _agent.StartRecording("manual");
                         continue;
                     }
@@ -95,12 +85,12 @@ class Program
                         if (_audioMode == "manual")
                         {
                             await _agent.StopRecording();
-                            LogConsole.InfoLine("结束录音");
+                            LogConsole.InfoLine("End of recording");
                             continue;
                         }
                     }
                 }
-                await Task.Delay(100); // 避免过于频繁的检查
+                await Task.Delay(100); // Avoid excessively frequent checkups
             }
         });
 
@@ -122,17 +112,15 @@ class Program
             {
                 if (!_agent.IsRecording)
                 {
-                    //Console.Title = "开始录音...";
-                    //LogConsole.InfoLine("开始录音... 再次回车结束录音");
                     _audioMode = "auto";
-                    LogConsole.InfoLine("开始录音... Auto");
+                    LogConsole.InfoLine("Start recording... Auto");
                     await _agent.StartRecording("auto");
                 }
                 else
                 {
                     //await _agent.StopRecording();
-                    //Console.Title = "小智XiaoZhiSharp客户端";
-                    //LogConsole.InfoLine("结束录音");
+                    //Console.Title = "XiaoZhiSharp client";
+                    //LogConsole.InfoLine("End of recording");
                 }
             }
         }
@@ -142,41 +130,41 @@ class Program
     {
         if (otaResponse != null)
         {
-            LogConsole.InfoLine("=== OTA检查结果 ===");
-            
+            LogConsole.InfoLine("=== OTA inspection results ===");
+
             if (otaResponse.Activation != null)
             {
-                LogConsole.InfoLine($"设备激活码: {otaResponse.Activation.Code}");
-                LogConsole.InfoLine($"激活消息: {otaResponse.Activation.Message}");
+                LogConsole.InfoLine($"Device activation code: {otaResponse.Activation.Code}");
+                LogConsole.InfoLine($"Activation message: {otaResponse.Activation.Message}");
             }
 
             if (otaResponse.Firmware != null && !string.IsNullOrEmpty(otaResponse.Firmware.Url))
             {
-                LogConsole.InfoLine($"发现固件更新: {otaResponse.Firmware.Version}");
-                LogConsole.InfoLine($"下载地址: {otaResponse.Firmware.Url}");
+                LogConsole.InfoLine($"Firmware update detected: {otaResponse.Firmware.Version}");
+                LogConsole.InfoLine($"Download link: {otaResponse.Firmware.Url}");
             }
 
             if (otaResponse.WebSocket != null)
             {
-                LogConsole.InfoLine($"WebSocket服务器: {otaResponse.WebSocket.Url}");
+                LogConsole.InfoLine($"WebSocket server: {otaResponse.WebSocket.Url}");
             }
 
             if (otaResponse.Mqtt != null)
             {
-                LogConsole.InfoLine($"MQTT服务器: {otaResponse.Mqtt.Endpoint}");
+                LogConsole.InfoLine($"MQTT server: {otaResponse.Mqtt.Endpoint}");
             }
 
-            LogConsole.InfoLine("=== OTA检查完成 ===");
+            LogConsole.InfoLine("=== OTA check complete ===");
         }
         else
         {
-            LogConsole.InfoLine("OTA检查失败，将使用默认配置");
+            LogConsole.InfoLine("OTA check failed, default configuration will be used.");
         }
     }
 
     private static async Task Agent_OnMessageEvent(string type, string message)
     {
-        switch(type.ToLower())
+        switch (type.ToLower())
         {
             case "question":
                 LogConsole.WriteLine(MessageType.Send, $"[{type}] {message}");
@@ -186,7 +174,7 @@ class Program
                 break;
             case "mcp":
                 string resultMessage = await _mcpService.McpMessageHandle(message);
-                if(!string.IsNullOrEmpty(resultMessage))
+                if (!string.IsNullOrEmpty(resultMessage))
                     await _agent.McpMessage(resultMessage);
                 break;
             default:
@@ -203,7 +191,7 @@ class Program
 
         //    _mcpClient = await McpClientFactory.CreateAsync(clientTransport);
         //}
-        
+
         //if (type == "mcp")
         //{
         //    dynamic? mcp = Newtonsoft.Json.JsonConvert.DeserializeObject<dynamic>(message);

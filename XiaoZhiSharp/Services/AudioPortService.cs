@@ -11,30 +11,30 @@ namespace XiaoZhiSharp.Services
 {
     public class AudioPortService : IAudioService, IDisposable
     {
-        // 音频输出相关组件
+        // Audio output related components
         private readonly PortAudioSharp.Stream? _waveOut;
         private readonly Queue<float[]> _waveOutStream = new Queue<float[]>();
 
-        // 音频输入相关组件
+        // Audio input related components
         private readonly PortAudioSharp.Stream? _waveIn;
 
         public delegate Task PcmAudioEventHandler(byte[] pcm);
         public event IAudioService.PcmAudioEventHandler? OnPcmAudioEvent;
 
-        // 音频参数
+        // Audio parameters
         private const int SampleRate = 24000;
         public int SampleRate_WaveIn { get; set; } = 16000;
         private const int Bitrate = 16;
         private const int Channels = 1;
         private const int FrameDuration = 60;
-        private const int FrameSize = SampleRate * FrameDuration / 1000; // 帧大小
+        private const int FrameSize = SampleRate * FrameDuration / 1000; // Frame size
 
         public bool IsRecording { get; private set; }
         public bool IsPlaying { get; private set; }
-        public int VadCounter { get; private set; } = 0; // 用于语音活动检测的计数器
+        public int VadCounter { get; private set; } = 0; // Counters for voice activity detection
         public AudioPortService()
         {
-            // 初始化音频输出组件
+            // Initialize audio output component
             PortAudio.Initialize();
             int outputDeviceIndex = PortAudio.DefaultOutputDevice;
             if (outputDeviceIndex == PortAudio.NoDevice)
@@ -67,7 +67,7 @@ namespace XiaoZhiSharp.Services
                 streamFlags: StreamFlags.ClipOff, callback: PlayCallback, userData: IntPtr.Zero
             );
 
-            // 初始化音频输入组件
+            // Initialize audio input component
             int inputDeviceIndex = PortAudio.DefaultInputDevice;
             if (inputDeviceIndex == PortAudio.NoDevice)
             {
@@ -89,11 +89,11 @@ namespace XiaoZhiSharp.Services
                 streamFlags: StreamFlags.ClipOff, callback: InCallback, userData: IntPtr.Zero
             );
 
-            // 启动音频播放
+            // Start audio playback
             StartPlaying();
 
-            LogConsole.InfoLine($"当前默认音频输入设备： {inputDeviceIndex} ({inputInfo.name})");
-            LogConsole.InfoLine($"当前默认音频输出设备： {outputDeviceIndex} ({outputInfo.name})");
+            LogConsole.InfoLine($"Current default audio input device： {inputDeviceIndex} ({inputInfo.name})");
+            LogConsole.InfoLine($"Current default audio output device： {outputDeviceIndex} ({outputInfo.name})");
         }
 
         private StreamCallbackResult PlayCallback(
@@ -149,15 +149,15 @@ namespace XiaoZhiSharp.Services
                     return StreamCallbackResult.Complete;
                 }
 
-                // 创建一个数组来存储输入的音频数据
+                // Create an array to store the input audio data.
                 float[] samples = new float[frameCount];
-                // 将输入的音频数据从非托管内存复制到托管数组
+                // Copy the input audio data from unmanaged memory to a managed array.
                 Marshal.Copy(input, samples, 0, (int)frameCount);
 
-                // 将音频数据转换为字节数组
+                // Convert audio data into a byte array
                 byte[] buffer = FloatArrayToByteArray(samples);
 
-                // 处理音频数据
+                // Processing audio data
                 if (OnPcmAudioEvent != null)
                     OnPcmAudioEvent(buffer);
 
@@ -172,15 +172,15 @@ namespace XiaoZhiSharp.Services
 
         public static byte[] FloatArrayToByteArray(float[] floatArray)
         {
-            // 初始化一个与 float 数组长度两倍的 byte 数组，因为每个 short 占 2 个字节
+            // Initialize a byte array twice the length of the float array, since each short occupies 2 bytes.
             byte[] byteArray = new byte[floatArray.Length * 2];
 
             for (int i = 0; i < floatArray.Length; i++)
             {
-                // 将 float 类型的值映射到 short 类型的范围
+                // Map float values ​​to short ranges
                 short sample = (short)(floatArray[i] * short.MaxValue);
 
-                // 将 short 类型的值拆分为两个字节
+                // Split a short value into two bytes
                 byteArray[i * 2] = (byte)(sample & 0xFF);
                 byteArray[i * 2 + 1] = (byte)(sample >> 8);
             }

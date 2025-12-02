@@ -11,15 +11,15 @@ namespace XiaoZhiSharp.Services
 {
     public class AudioOpusService
     {
-        // Opus 相关组件
-        private OpusDecoder opusDecoder;   // 解码器
-        private OpusEncoder opusEncoder;   // 编码器
+        // Opus Related components
+        private OpusDecoder opusDecoder;   // decoder
+        private OpusEncoder opusEncoder;   // encoder
         private readonly object _lock = new();
         private int _currentSampleRate;
         private int _currentChannels;
 
         /// <summary>
-        /// 编码器
+        /// encoder
         /// </summary>
         /// <param name="pcmData"></param>
         /// <param name="sampleRate"></param>
@@ -41,24 +41,24 @@ namespace XiaoZhiSharp.Services
 
                 try
                 {
-                    // 计算帧大小 (采样数，不是字节数)
-                    int frameSize = sampleRate * frameDuration / 1000; // 默认60ms帧
+                    // Calculate the frame size (number of samples, not the number of bytes).
+                    int frameSize = sampleRate * frameDuration / 1000; // Default 60ms frame
 
-                    // 确保输入数据长度正确 (16位音频 = 2字节/样本)
+                    // Ensure the input data length is correct (16-bit audio = 2 bytes/sample)
                     int expectedBytes = frameSize * channels * 2;
 
                     if (pcmData.Length != expectedBytes)
                     {
-                        // 调整数据长度或填充零
+                        // Adjust data length or pad with zeros
                         byte[] adjustedData = new byte[expectedBytes];
                         if (pcmData.Length < expectedBytes)
                         {
-                            // 数据不足，复制现有数据并填充零
+                            // Insufficient data, copy existing data and fill with zeros
                             Array.Copy(pcmData, adjustedData, pcmData.Length);
                         }
                         else
                         {
-                            // 数据过多，截断
+                            // Too much data, truncate
                             Array.Copy(pcmData, adjustedData, expectedBytes);
                         }
                         pcmData = adjustedData;
@@ -70,7 +70,7 @@ namespace XiaoZhiSharp.Services
                         pcmShorts[i] = BitConverter.ToInt16(pcmData, i * 2);
                     }
 
-                    byte[] outputBuffer = new byte[4000]; // Opus最大包大小
+                    byte[] outputBuffer = new byte[4000]; // Opus maximum package size
                     int encodedLength = opusEncoder.Encode(pcmShorts, frameSize, outputBuffer, outputBuffer.Length);
 
                     byte[] result = new byte[encodedLength];
@@ -79,7 +79,7 @@ namespace XiaoZhiSharp.Services
                 }
                 catch (Exception ex)
                 {
-                    //LogConsole.WarningLine($"Opus 编码失败: {ex.Message}");
+                    //LogConsole.WarningLine($"Opus encoding failed: {ex.Message}");
                     return Array.Empty<byte>();
                 }
             }
@@ -107,8 +107,8 @@ namespace XiaoZhiSharp.Services
                 }
                 try
                 {
-                    // 计算帧大小 (采样数，不是字节数)
-                    int frameSize = sampleRate * frameDuration / 1000; // 默认60ms帧
+                    // Calculate the frame size (number of samples, not the number of bytes).
+                    int frameSize = sampleRate * frameDuration / 1000; // Default 60ms frame
                     short[] pcmShorts = new short[frameSize * channels];
                     int decodedSamples = opusDecoder.Decode(opusData, opusData.Length, pcmShorts, frameSize, false);
                     if (decodedSamples <= 0)
@@ -123,14 +123,14 @@ namespace XiaoZhiSharp.Services
                 }
                 catch (Exception ex)
                 {
-                    //LogConsole.WarningLine($"Opus 解码失败: {ex.Message}");
+                    //LogConsole.WarningLine($"Opus decoding failed: {ex.Message}");
                     return Array.Empty<byte>();
                 }
             }
         }
 
         /// <summary>
-        /// 将 PCM 数据转换为 float 数组
+        /// Converts PCM data to a float array
         /// </summary>
         /// <param name="byteArray"></param>
         /// <returns></returns>
@@ -142,16 +142,16 @@ namespace XiaoZhiSharp.Services
 
             for (int i = 0; i < floatLength; i++)
             {
-                // 从 byte 数组中读取两个字节并转换为 short 类型
+                // Read two bytes from a byte array and convert them to short type
                 short sample = BitConverter.ToInt16(byteArray, i * 2);
-                // 将 short 类型的值转换为 float 类型，范围是 [-1, 1]
+                // Convert a short value to a float type, with a range of [-1, 1]
                 floatArray[i] = sample / 32768.0f;
             }
 
             return floatArray;
         }
         /// <summary>
-        /// 将 float 数组转换为 PCM 数据
+        /// Convert a float array to PCM data
         /// </summary>
         /// <param name="floatArray"></param>
         /// <returns></returns>
@@ -162,11 +162,11 @@ namespace XiaoZhiSharp.Services
 
             for (int i = 0; i < floatLength; i++)
             {
-                // 将 float 类型的值转换为 short 类型
+                // Convert a float value to a short value
                 short sample = (short)(floatArray[i] * 32767);
-                // 将 short 类型的值转换为两个字节
+                // Convert a short value to two bytes
                 byte[] bytes = BitConverter.GetBytes(sample);
-                // 将两个字节存储到 byte 数组中
+                // Store the two bytes in a byte array
                 bytes.CopyTo(byteArray, i * 2);
             }
 

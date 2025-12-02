@@ -9,12 +9,12 @@ namespace XiaoZhiSharp.Utils
     public class AudioHelper
     {
         /// <summary>
-        /// 静音检测
+        /// Noise level detection
         /// </summary>
         public static bool IsAudioMute(byte[] buffer, int bytesRecorded)
         {
             double rms = 0;
-            int sampleCount = bytesRecorded / 2; // 每个样本 2 字节
+            int sampleCount = bytesRecorded / 2; // 2 bytes per sample
 
             for (int i = 0; i < sampleCount; i++)
             {
@@ -23,9 +23,9 @@ namespace XiaoZhiSharp.Utils
             }
 
             rms = Math.Sqrt(rms / sampleCount);
-            rms /= short.MaxValue; // 归一化到 0 - 1 范围
+            rms /= short.MaxValue; // Normalize to the range of 0 - 1
 
-            double MuteThreshold = 0.01; // 静音阈值
+            double MuteThreshold = 0.01; // Silence threshold
             return rms < MuteThreshold;
         }
     }

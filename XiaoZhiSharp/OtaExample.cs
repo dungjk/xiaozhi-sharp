@@ -7,21 +7,21 @@ using XiaoZhiSharp.Utils;
 namespace XiaoZhiSharp
 {
     /// <summary>
-    /// OTA功能使用示例
+    /// OTA Function Usage Examples
     /// </summary>
     public class OtaExample
     {
         /// <summary>
-        /// 基本OTA使用示例
+        /// Basic OTA usage examples
         /// </summary>
         public static async Task BasicExample()
         {
-            LogConsole.InfoLine("=== 基本OTA使用示例 ===");
+            LogConsole.InfoLine("=== Basic OTA usage examples ===");
 
-            // 创建XiaoZhiAgent实例
+            // Create XiaoZhiAgent instance
             var agent = new XiaoZhiAgent();
 
-            // 订阅事件
+            // Subscription Events
             agent.OnMessageEvent += (type, message) =>
             {
                 LogConsole.InfoLine($"[{type}] {message}");
@@ -32,7 +32,7 @@ namespace XiaoZhiSharp
             {
                 if (otaResponse != null)
                 {
-                    LogConsole.InfoLine("OTA检查成功，获取到服务器配置");
+                    LogConsole.InfoLine("OTA check successful, server configuration obtained.");
                     
                     // 可以访问各种配置信息
                     if (otaResponse.WebSocket != null)
@@ -43,43 +43,43 @@ namespace XiaoZhiSharp
 
                     if (otaResponse.Mqtt != null)
                     {
-                        LogConsole.InfoLine($"MQTT服务器: {otaResponse.Mqtt.Endpoint}");
-                        LogConsole.InfoLine($"MQTT客户端ID: {otaResponse.Mqtt.ClientId}");
+                        LogConsole.InfoLine($"MQTT server: {otaResponse.Mqtt.Endpoint}");
+                        LogConsole.InfoLine($"MQTT Client ID: {otaResponse.Mqtt.ClientId}");
                     }
                 }
                 else
                 {
-                    LogConsole.InfoLine("OTA检查失败，使用默认配置");
+                    LogConsole.InfoLine("OTA check failed, use default configuration.");
                 }
                 return Task.CompletedTask;
             };
 
-            // 启动（会自动进行OTA检查）
+            // Start (OTA check will be performed automatically)
             await agent.Start();
 
-            LogConsole.InfoLine("XiaoZhiAgent已启动，OTA检查完成");
+            LogConsole.InfoLine("XiaoZhiAgent has started; OTA check complete.");
         }
 
         /// <summary>
-        /// 自定义OTA请求示例
+        /// Custom OTA Request Example
         /// </summary>
         public static async Task CustomOtaExample()
         {
-            LogConsole.InfoLine("=== 自定义OTA请求示例 ===");
+            LogConsole.InfoLine("=== Custom OTA Request Example ===");
 
             var agent = new XiaoZhiAgent();
 
-            // 设置自定义参数
+            // Set custom parameters
             agent.CurrentVersion = "1.2.3";
             agent.UserAgent = "custom-device/1.2.3";
 
             agent.OnOtaEvent += (otaResponse) =>
             {
-                LogConsole.InfoLine("收到OTA响应");
+                LogConsole.InfoLine("Received OTA response");
                 return Task.CompletedTask;
             };
 
-            // 手动进行OTA检查（带WiFi信息）
+            // Manually perform OTA check (with WiFi information)
             var otaResponse = await agent.CheckOtaUpdateWithWifi(
                 ssid: "Test-WiFi",
                 rssi: -45,
@@ -89,57 +89,57 @@ namespace XiaoZhiSharp
 
             if (otaResponse != null)
             {
-                LogConsole.InfoLine("自定义OTA检查成功");
+                LogConsole.InfoLine("Custom OTA check successful");
             }
         }
 
         /// <summary>
-        /// 仅OTA检查示例（不启动WebSocket）
+        /// OTA check example only (without starting WebSocket)
         /// </summary>
         public static async Task OtaOnlyExample()
         {
-            LogConsole.InfoLine("=== 仅OTA检查示例 ===");
+            LogConsole.InfoLine("=== OTA inspection example only ===");
 
             var agent = new XiaoZhiAgent();
 
-            // 仅进行OTA检查，不启动WebSocket连接
+            // Perform OTA check only, do not initiate WebSocket connection.
             var otaResponse = await agent.CheckOtaUpdate();
 
             if (otaResponse != null)
             {
-                LogConsole.InfoLine("OTA检查完成");
-                
-                // 检查是否有固件更新
+                LogConsole.InfoLine("OTA check complete");
+
+                // Check for firmware updates.
                 if (otaResponse.Firmware != null && !string.IsNullOrEmpty(otaResponse.Firmware.Url))
                 {
-                    LogConsole.InfoLine($"发现固件更新: {otaResponse.Firmware.Version}");
-                    LogConsole.InfoLine($"下载地址: {otaResponse.Firmware.Url}");
-                    
-                    // 这里可以添加下载固件的逻辑
+                    LogConsole.InfoLine($"Firmware update detected: {otaResponse.Firmware.Version}");
+                    LogConsole.InfoLine($"Download link: {otaResponse.Firmware.Url}");
+
+                    // Here you can add logic for downloading firmware.
                 }
                 else
                 {
-                    LogConsole.InfoLine("没有固件更新");
+                    LogConsole.InfoLine("No firmware update");
                 }
 
-                // 显示服务器时间
+                // Display server time
                 if (otaResponse.ServerTime != null)
                 {
                     var serverTime = DateTimeOffset.FromUnixTimeMilliseconds(otaResponse.ServerTime.Timestamp);
-                    LogConsole.InfoLine($"服务器时间: {serverTime}");
-                    LogConsole.InfoLine($"时区: {otaResponse.ServerTime.Timezone}");
+                    LogConsole.InfoLine($"Server time: {serverTime}");
+                    LogConsole.InfoLine($"Time zone: {otaResponse.ServerTime.Timezone}");
                 }
 
-                // 显示激活信息
+                // Display activation information
                 if (otaResponse.Activation != null)
                 {
-                    LogConsole.InfoLine($"激活码: {otaResponse.Activation.Code}");
-                    LogConsole.InfoLine($"激活消息: {otaResponse.Activation.Message}");
+                    LogConsole.InfoLine($"Activation code: {otaResponse.Activation.Code}");
+                    LogConsole.InfoLine($"Activation message: {otaResponse.Activation.Message}");
                 }
             }
             else
             {
-                LogConsole.InfoLine("OTA检查失败");
+                LogConsole.InfoLine("OTA check failed");
             }
         }
     }

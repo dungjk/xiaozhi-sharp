@@ -13,14 +13,14 @@ namespace XiaoZhiSharp.Services
 {
     public class AudioWaveService : IAudioService, IDisposable
     {
-        // NAudio 音频输出相关组件
+        // NAudio audio output related components
         private IWavePlayer? _waveOut;
         private BufferedWaveProvider? _waveOutProvider = null;
-        // NAudio 音频输入相关组件
+        // NAudio audio input related components
         private WaveInEvent? _waveIn;
 
         public event IAudioService.PcmAudioEventHandler? OnPcmAudioEvent;
-        // 音频参数
+        // Audio parameters
         public int SampleRate { get; set; } = Global.SampleRate_WaveOut;
         public int SampleRate_WaveIn { get; set; } = Global.SampleRate_WaveIn;
         public int Bitrate { get; set; } = 16;
@@ -30,34 +30,34 @@ namespace XiaoZhiSharp.Services
         {
             get
             {
-                return SampleRate * FrameDuration / 1000; // 帧大小
+                return SampleRate * FrameDuration / 1000; // Frame size
             }
         }
         public bool IsPlaying { get; private set; }
         public bool IsRecording { get; private set; } = false;
-        public int VadCounter { get; private set; } = 0; // 用于语音活动检测的计数器
+        public int VadCounter { get; private set; } = 0; // Counters for voice activity detection
         public AudioWaveService()
         {
             Initialize();
         }
         public void Initialize()
         {
-            // 初始化音频输出相关组件
+            // Initialize audio output related components
             var waveFormat = new WaveFormat(SampleRate, Bitrate, Channels);
             _waveOut = new WaveOutEvent();
             _waveOutProvider = new BufferedWaveProvider(waveFormat);
             _waveOut.Init(_waveOutProvider);
-            // 增大缓冲区大小，例如设置为 10 秒的音频数据
+            // Increase the buffer size, for example, to 10 seconds of audio data.
             _waveOutProvider.BufferLength = SampleRate * Channels * 2 * 10;
 
-            // 初始化音频输入相关组件
+            // Initialize audio input components
             _waveIn = new WaveInEvent();
             _waveIn.WaveFormat = new WaveFormat(48000, Bitrate, Channels);
             //_waveIn.WaveFormat = new WaveFormat(SampleRate, Bitrate, Channels);
             _waveIn.DataAvailable += waveIn_DataAvailable;
             _waveIn.RecordingStopped += waveIn_RecordingStopped;
 
-            // 启动音频播放线程
+            // Start audio playback thread
             Thread threadWave = new Thread(() =>
             {
                 while (true)
@@ -71,7 +71,7 @@ namespace XiaoZhiSharp.Services
                     }
                     while (IsPlaying)
                     {
-                        // 可以添加更多逻辑，如缓冲区检查等
+                        // More logic can be added, such as buffer checks, etc.
                         Thread.Sleep(10);
                     }
                     StopPlaying();
@@ -88,7 +88,7 @@ namespace XiaoZhiSharp.Services
                     _waveIn.StartRecording();
                     IsRecording = true;
                     VadCounter = 0;
-                    //LogConsole.WriteLine("开始录音");
+                    //LogConsole.WriteLine("Start recording");
                 }
             }
         }
@@ -99,19 +99,19 @@ namespace XiaoZhiSharp.Services
                 if (IsRecording)
                 {
                     _waveIn.StopRecording();
-                    //LogConsole.WriteLine("结束录音");
+                    //LogConsole.WriteLine("End of recording");
                     IsRecording = false;
                     VadCounter = 0;
                 }
             }
         }
         /// <summary>
-        /// 静音检测
+        /// Noise level detection
         /// </summary>
         private bool IsAudioMute(byte[] buffer, int bytesRecorded)
         {
             double rms = 0;
-            int sampleCount = bytesRecorded / 2; // 每个样本 2 字节
+            int sampleCount = bytesRecorded / 2; // 2 bytes per sample
 
             for (int i = 0; i < sampleCount; i++)
             {
@@ -120,9 +120,9 @@ namespace XiaoZhiSharp.Services
             }
 
             rms = Math.Sqrt(rms / sampleCount);
-            rms /= short.MaxValue; // 归一化到 0 - 1 范围
+            rms /= short.MaxValue; // Normalize to the range of 0 - 1
 
-            double MuteThreshold = 0.01; // 静音阈值
+            double MuteThreshold = 0.01; // Silence threshold
             return rms < MuteThreshold;
         }
         private void waveIn_RecordingStopped(object? sender, StoppedEventArgs e)
@@ -130,7 +130,7 @@ namespace XiaoZhiSharp.Services
         }
         private float[] ConvertBytesToFloats(byte[] byteData)
         {
-            int sampleCount = byteData.Length / 2; // 假设是 16 位音频
+            int sampleCount = byteData.Length / 2; // Assuming it's 16-bit audio
             float[] floatData = new float[sampleCount];
 
             for (int i = 0; i < sampleCount; i++)
@@ -149,7 +149,7 @@ namespace XiaoZhiSharp.Services
                 if (!IsAudioMute(pcmBytes48000, e.BytesRecorded))
                 {
                     if(Global.IsDebug)
-                        Console.Title = "录音-" + VadCounter;
+                        Console.Title = "Recording-" + VadCounter;
                     byte[] pcmBytes = ConvertPcmSampleRate(pcmBytes48000, 48000, SampleRate_WaveIn, Channels, Bitrate);
 
                     if (OnPcmAudioEvent != null)
@@ -161,30 +161,30 @@ namespace XiaoZhiSharp.Services
                 {
                     VadCounter ++;
                     if (Global.IsDebug)
-                        Console.Title = "静音-" + VadCounter;
+                        Console.Title = "Mute-" + VadCounter;
                 }
             });
         }
         private byte[] ConvertPcmSampleRate(byte[] pcmData, int originalSampleRate, int targetSampleRate, int channels, int bitsPerSample)
         {
-            // 创建原始音频格式
+            // Create raw audio format
             WaveFormat originalFormat = new WaveFormat(originalSampleRate, bitsPerSample, channels);
 
-            // 将 byte[] 数据包装成 MemoryStream
+            // Wrap byte[] data into a MemoryStream
             using (MemoryStream memoryStream = new MemoryStream(pcmData))
             {
-                // 创建原始音频流
+                // Create raw audio stream
                 using (RawSourceWaveStream originalStream = new RawSourceWaveStream(memoryStream, originalFormat))
                 {
-                    // 创建目标音频格式
+                    // Create target audio format
                     WaveFormat targetFormat = new WaveFormat(targetSampleRate, bitsPerSample, channels);
 
-                    // 进行重采样
+                    // Resampling
                     using (MediaFoundationResampler resampler = new MediaFoundationResampler(originalStream, targetFormat))
                     {
-                        resampler.ResamplerQuality = 60; // 设置重采样质量
+                        resampler.ResamplerQuality = 60; // Set resampling quality
 
-                        // 计算重采样后数据的大致长度
+                        // Calculate the approximate length of the resampled data
                         long estimatedLength = (long)(pcmData.Length * (double)targetSampleRate / originalSampleRate);
                         byte[] resampledData = new byte[estimatedLength];
 
@@ -197,7 +197,7 @@ namespace XiaoZhiSharp.Services
                             totalBytesRead += bytesRead;
                         }
 
-                        // 调整数组长度到实际读取的字节数
+                        // Adjust the array length to the actual number of bytes read.
                         Array.Resize(ref resampledData, totalBytesRead);
 
                         return resampledData;
@@ -225,7 +225,7 @@ namespace XiaoZhiSharp.Services
         {
             if (_waveOutProvider != null)
             {
-                // 添加样本数据
+                // Add sample data
                 _waveOutProvider.AddSamples(pcmData, 0, pcmData.Length);
             }
         }
@@ -235,28 +235,28 @@ namespace XiaoZhiSharp.Services
             {
                 byte[] byteAudioData = FloatArrayToByteArray(pcmData);
 
-                // 检查缓冲区可用空间
+                // Check the available space in the buffer.
                 while (_waveOutProvider.BufferedBytes + byteAudioData.Length > _waveOutProvider.BufferLength)
                 {
-                    // 等待一段时间，让缓冲区有足够空间
+                    // Wait a while to allow the buffer to have enough space.
                     System.Threading.Thread.Sleep(10);
                 }
 
-                // 添加样本数据
+                // Add sample data
                 _waveOutProvider.AddSamples(byteAudioData, 0, byteAudioData.Length);
             }
         }
         private static byte[] FloatArrayToByteArray(float[] floatArray)
         {
-            // 初始化一个与 float 数组长度两倍的 byte 数组，因为每个 short 占 2 个字节
+            // Initialize a byte array twice the length of the float array, since each short occupies 2 bytes.
             byte[] byteArray = new byte[floatArray.Length * 2];
 
             for (int i = 0; i < floatArray.Length; i++)
             {
-                // 将 float 类型的值映射到 short 类型的范围
+                // Map float values ​​to short ranges
                 short sample = (short)(floatArray[i] * short.MaxValue);
 
-                // 将 short 类型的值拆分为两个字节
+                // Split the short value into two bytes
                 byteArray[i * 2] = (byte)(sample & 0xFF);
                 byteArray[i * 2 + 1] = (byte)(sample >> 8);
             }
@@ -265,17 +265,17 @@ namespace XiaoZhiSharp.Services
         }
         private static float[] ByteArrayToFloatArray(byte[] byteArray)
         {
-            // 检查字节数组的长度是否是 4 的倍数
+            // Check if the length of the byte array is a multiple of 4
             if (byteArray.Length % 4 != 0)
             {
-                throw new ArgumentException("字节数组的长度必须是 4 的倍数。");
+                throw new ArgumentException("The length of the byte array must be a multiple of 4.");
             }
 
-            // 计算浮点数数组的长度
+            // Calculate the length of an array of floating point numbers
             int floatCount = byteArray.Length / 4;
             float[] floatArray = new float[floatCount];
 
-            // 循环遍历字节数组，每次取 4 个字节转换为一个浮点数
+            // Loop through the byte array, taking 4 bytes each time and converting them into a floating point number
             for (int i = 0; i < floatCount; i++)
             {
                 floatArray[i] = BitConverter.ToSingle(byteArray, i * 4);

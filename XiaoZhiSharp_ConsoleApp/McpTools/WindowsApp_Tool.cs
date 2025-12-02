@@ -12,10 +12,10 @@ namespace XiaoZhiSharp_ConsoleApp.McpTools
     [McpServerToolType]
     public sealed class WindowsApp_Tool
     {
-        [McpServerTool, Description("打开记事本")]
+        [McpServerTool, Description("Open Notepad")]
         public static string OpenNotepad()
         {
-            return OpenWindowsApp("记事本");
+            return OpenWindowsApp("Notepad");
         }
 
         public static string OpenWindowsApp(string name)
@@ -24,31 +24,31 @@ namespace XiaoZhiSharp_ConsoleApp.McpTools
             {
                 switch(name.ToLower())
                 {
-                    case "资源管理器":
-                        name = "explorer.exe"; // 打开文件资源管理器
+                    case "File Explorer":
+                        name = "explorer.exe"; // Open File Explorer
                         break;
-                    case "记事本":
-                        name = "notepad.exe"; // 打开记事本
+                    case "Notepad":
+                        name = "notepad.exe"; // Open Notepad
                         break;
-                    case "计算器":
-                        name = "calc.exe"; // 打开计算器
+                    case "calculator":
+                        name = "calc.exe"; // Open the calculator
                         break;
-                    case "命令提示符":
-                        name = "cmd.exe"; // 打开命令提示符
+                    case "Command Prompt":
+                        name = "cmd.exe"; // Open command prompt
                         break;
                     case "powershell":
-                        name = "powershell.exe"; // 打开 PowerShell
+                        name = "powershell.exe"; // Open PowerShell
                         break;
                     default:
-                        // 如果是其他应用程序，直接使用名称
+                        // For other applications, simply use the name.
                         break;
                 }
                 Process.Start(name);
-                return "应用打开成功";
+                return "Application opened successfully";
             }
             catch (Exception ex)
             {
-                return "应用打开失败";
+                return "Application failed to open";
             }
         }
     }

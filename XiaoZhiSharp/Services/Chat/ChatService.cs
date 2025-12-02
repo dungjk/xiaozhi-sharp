@@ -1,33 +1,32 @@
 ﻿using XiaoZhiSharp.Protocols;
 using XiaoZhiSharp.Utils;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Text.Json;
 
 namespace XiaoZhiSharp.Services.Chat
 {
-    public class ChatService: IDisposable
+    public class ChatService : IDisposable
     {
-        private string TAG = "小智";
+        private string TAG = "XiaoZhi";
         private string _wsUrl { get; set; } = "wss://api.tenclass.net/xiaozhi/v1/";
         private string? _token { get; set; } = "test-token";
         private string? _deviceId { get; set; }
         private string? _sessionId = "";
-        // 首次连接
+        // First connection
         private bool _isFirst = true;
         private ClientWebSocket? _webSocket = null;
         private bool _disposed = false;
         private System.Timers.Timer _onAudioTimeout;
 
-        #region 属性
+        #region property
         public WebSocketState ConnectState { get { return _webSocket?.State ?? WebSocketState.None; } }
         #endregion
 
-        #region 事件
+        #region event
         public delegate Task MessageEventHandler(string type, string message);
         public event MessageEventHandler? OnMessageEvent = null;
 
@@ -35,8 +34,8 @@ namespace XiaoZhiSharp.Services.Chat
         public event AudioEventHandler? OnAudioEvent = null;
         #endregion
 
-        #region 构造函数
-        public ChatService(string wsUrl, string token,string deviceId)
+        #region Constructor
+        public ChatService(string wsUrl, string token, string deviceId)
         {
             _wsUrl = wsUrl;
             _token = token;
@@ -53,14 +52,14 @@ namespace XiaoZhiSharp.Services.Chat
             _webSocket.Options.SetRequestHeader("Device-Id", _deviceId);
             _webSocket.Options.SetRequestHeader("Client-Id", Guid.NewGuid().ToString());
             _webSocket.ConnectAsync(uri, CancellationToken.None);
-            LogConsole.InfoLine($"{TAG} 连接中...");
+            LogConsole.InfoLine($"{TAG} Connecting...");
 
             Task.Run(async () =>
             {
                 await ReceiveMessagesAsync();
             });
 
-            // 语音合成播报超时
+            // Speech synthesis broadcast timeout
             _onAudioTimeout = new System.Timers.Timer(500);
             _onAudioTimeout.Elapsed += async (sender, e) => await OnAudioTimeout();
             _onAudioTimeout.AutoReset = false;
@@ -87,11 +86,11 @@ namespace XiaoZhiSharp.Services.Chat
                 {
                     try
                     {
-                        // 首次
+                        // first
                         if (_isFirst)
                         {
                             _isFirst = false;
-                            LogConsole.InfoLine($"{TAG} 连接成功");
+                            LogConsole.InfoLine($"{TAG} Connection successful");
                             await SendMessageAsync(XiaoZhi_Protocol.Hello(Global.IsMcp));
                         }
 
@@ -106,48 +105,58 @@ namespace XiaoZhiSharp.Services.Chat
 
                             if (!string.IsNullOrEmpty(message))
                             {
-                                dynamic? msg = Newtonsoft.Json.JsonConvert.DeserializeObject<dynamic>(message);
-                                if (msg == null)
+                                using var jsonDocument = JsonDocument.Parse(message);
+                                if (jsonDocument == null)
                                 {
-                                    LogConsole.ErrorLine($"{TAG} 接收到的消息格式错误: {message}");
+                                    LogConsole.ErrorLine($"{TAG} Received message format error: {message}");
                                     continue;
                                 }
-                                _sessionId = msg.session_id;
-                                if (msg.type == "mcp") {
-                                    if (OnMessageEvent != null)
-                                        await OnMessageEvent("mcp", Newtonsoft.Json.JsonConvert.SerializeObject(msg.payload));
-                                }
-                                // 问
-                                if (msg.type == "stt")
+                                _sessionId = jsonDocument.RootElement.GetProperty("session_id").GetString();
+                                var messageType = jsonDocument.RootElement.GetProperty("type").GetString();
+                                if (messageType == "mcp")
                                 {
                                     if (OnMessageEvent != null)
-                                        await OnMessageEvent("question", System.Convert.ToString(msg.text));
+                                    {
+                                        var payload = jsonDocument.RootElement.GetProperty("payload");
+                                        await OnMessageEvent("mcp", payload.ToString());
+                                    }
+                                }
+                                // ask
+                                if (messageType == "stt")
+                                {
+                                    if (OnMessageEvent != null)
+                                        await OnMessageEvent("question", System.Convert.ToString(jsonDocument.RootElement.GetProperty("text").GetString()));
 
                                     if (OnMessageEvent != null)
                                         await OnMessageEvent("audio_start", "");
                                 }
-                                // 答
-                                if (msg.type == "tts")
+                                // answer
+                                if (messageType == "tts")
                                 {
-                                    if (msg.state == "sentence_start")
+                                    var messageState = jsonDocument.RootElement.GetProperty("state").GetString();
+                                    if (messageState == "sentence_start")
                                     {
                                         if (OnMessageEvent != null)
-                                            await OnMessageEvent("answer", System.Convert.ToString(msg.text));
+                                            await OnMessageEvent("answer", System.Convert.ToString(jsonDocument.RootElement.GetProperty("text").GetString()));
                                     }
 
-                                    if (msg.state == "stop")
+                                    if (messageState == "stop")
                                     {
                                         if (OnMessageEvent != null)
                                             await OnMessageEvent("answer_stop", "");
                                     }
                                 }
-                                // 情感
-                                if (msg.type == "llm")
+                                // emotion
+                                if (messageType == "llm")
                                 {
                                     if (OnMessageEvent != null)
-                                        await OnMessageEvent("emotion", System.Convert.ToString(msg.emotion));
+                                    {
+                                        await OnMessageEvent("emotion", System.Convert.ToString(jsonDocument.RootElement.GetProperty("emotion").GetString()));
+                                    }
                                     if (OnMessageEvent != null)
-                                        await OnMessageEvent("emotion_text", System.Convert.ToString(msg.text));
+                                    {
+                                        await OnMessageEvent("emotion_text", System.Convert.ToString(jsonDocument.RootElement.GetProperty("text").GetString()));
+                                    }
                                 }
                             }
 
@@ -156,9 +165,9 @@ namespace XiaoZhiSharp.Services.Chat
                         if (result.MessageType == WebSocketMessageType.Binary)
                         {
                             _onAudioTimeout.Stop();
-                            // 触发事件
+                            // Triggering event
                             if (OnAudioEvent != null)
-                               await OnAudioEvent(messageBytes);
+                                await OnAudioEvent(messageBytes);
                             _onAudioTimeout.Start();
                         }
                     }
@@ -168,7 +177,7 @@ namespace XiaoZhiSharp.Services.Chat
                     }
                 }
 
-                //Thread.Sleep(1); // 避免过于频繁的循环
+                //Thread.Sleep(1); // Avoid overly frequent loops
             }
         }
         private async Task SendMessageAsync(string message)
@@ -229,8 +238,8 @@ namespace XiaoZhiSharp.Services.Chat
             if (!_disposed)
             {
                 _disposed = true;
-                
-                // 关闭WebSocket连接
+
+                // Close WebSocket connection
                 try
                 {
                     if (_webSocket != null && (_webSocket.State == WebSocketState.Open || _webSocket.State == WebSocketState.Connecting))
@@ -240,9 +249,9 @@ namespace XiaoZhiSharp.Services.Chat
                 }
                 catch (Exception ex)
                 {
-                    LogConsole.ErrorLine($"{TAG} 关闭WebSocket连接时出错: {ex.Message}");
+                    LogConsole.ErrorLine($"{TAG} An error occurred while closing the WebSocket connection.: {ex.Message}");
                 }
-                
+
                 _webSocket?.Dispose();
                 _webSocket = null;
             }

@@ -2,12 +2,13 @@
 using System.Collections.Generic;
 using System.Net.WebSockets;
 using System.Runtime.InteropServices;
+using System.Threading;
 using System.Threading.Tasks;
+using XiaoZhiSharp.Models;
 using XiaoZhiSharp.Protocols;
 using XiaoZhiSharp.Services;
+using XiaoZhiSharp.Services.Chat;
 using XiaoZhiSharp.Utils;
-using System.Threading;
-using XiaoZhiSharp.Models;
 
 namespace XiaoZhiSharp
 {
@@ -26,12 +27,12 @@ namespace XiaoZhiSharp
         private Services.OtaService? _otaService = null;
         private OtaResponse? _latestOtaResponse = null;
 
-        // 添加一个用于跟踪当前任务的变量
+        // Add a variable to track the current task.
         private Task? _monitoringTask = null;
         private bool _disposed = false;
         private CancellationTokenSource? _recordingCts = null;
 
-        #region 属性
+        #region property
         public string WsUrl
         {
             get { return _wsUrl; }
@@ -90,7 +91,7 @@ namespace XiaoZhiSharp
         }
         #endregion
 
-        #region 事件
+        #region event
         public delegate Task MessageEventHandler(string type, string message);
         public event MessageEventHandler? OnMessageEvent = null;
 
@@ -104,37 +105,37 @@ namespace XiaoZhiSharp
         public event OtaEventHandler? OnOtaEvent = null;
         #endregion
 
-        #region 构造函数
+        #region Constructor
         public XiaoZhiAgent() { }
         #endregion
 
         public async Task Start()
         {
-            // 1. 首先进行OTA检查
+            // 1. First, perform an OTA check.
             await CheckOtaUpdate();
 
-            // 2. 根据OTA响应决定WebSocket连接参数
+            // 2. WebSocket connection parameters are determined based on the OTA response.
             string wsUrl = _latestOtaResponse?.WebSocket?.Url ?? _wsUrl;
             string token = _latestOtaResponse?.WebSocket?.Token ?? _token;
 
-            LogConsole.InfoLine($"使用WebSocket URL: {wsUrl}");
-            LogConsole.InfoLine($"使用Token: {token}");
+            LogConsole.InfoLine($"Using WebSocket URL: {wsUrl}");
+            LogConsole.InfoLine($"Use Token: {token}");
 
-            // 3. 启动WebSocket连接
+            // 3. Initiate WebSocket connection
             _chatService = new Services.Chat.ChatService(wsUrl, token, _deviceId);
             _chatService.OnMessageEvent += ChatService_OnMessageEvent;
             if (Global.IsAudio)
                 _chatService.OnAudioEvent += ChatService_OnAudioEvent;
             _chatService.Start();
 
-            // 4. 初始化音频服务
+            // 4. Initialize audio service
             if (Global.IsAudio)
             {
                 if (_audioService == null)
                 {
                     if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                     {
-                        LogConsole.InfoLine("当前操作系统是 Windows");
+                        LogConsole.InfoLine("The current operating system is Windows.");
                         _audioService = new AudioWaveService();
                     }
                     else
@@ -149,145 +150,148 @@ namespace XiaoZhiSharp
         }
         public async Task Restart()
         {
-            // 保存当前的音频服务引用，以便重新设置事件处理
+            // Save the current audio service reference so that event handling can be reset.
             var currentAudioService = _audioService;
-            
-            // 如果存在音频服务，先移除事件处理器
+
+            // If an audio service exists, remove the event handler first.
             if (currentAudioService != null)
             {
-                // 移除事件处理器，避免重复订阅
+                // Remove event handlers to avoid duplicate subscriptions
                 currentAudioService.OnPcmAudioEvent -= AudioService_OnPcmAudioEvent;
             }
-            
-            // 释放现有资源
+
+            // Release existing resources
             _chatService?.Dispose();
+            _chatService = null;
+
             _otaService?.Dispose();
-            
-            // 重置录音取消令牌
+            _otaService = null;
+
+            // Reset Recording Cancellation Token
             _recordingCts?.Cancel();
             _recordingCts?.Dispose();
             _recordingCts = null;
-            
-            // 重新启动服务
+
+            // Restart the service
             await Start();
-            
-            // 如果音频服务实例没有变化，则确保录音状态正确
+
+            // If the audio service instance has not changed, ensure the recording status is correct.
             if (currentAudioService != null && _audioService == currentAudioService)
             {
-                // 确保录音状态正确
+                // Ensure the recording status is correct.
                 if (_audioService.IsRecording)
                 {
                     _audioService.StopRecording();
                 }
             }
             
-            LogConsole.InfoLine("重启完成");
+            LogConsole.InfoLine("Reboot complete");
         }
 
         /// <summary>
-        /// 执行OTA检查
+        /// Perform OTA checks
         /// </summary>
         /// <returns></returns>
         public async Task<OtaResponse?> CheckOtaUpdate()
         {
             try
             {
-                LogConsole.InfoLine("开始OTA检查...");
+                LogConsole.InfoLine("Start OTA check...");
 
-                // 初始化OTA服务
+                // Initialize OTA service
                 _otaService ??= new Services.OtaService(_userAgent, _deviceId, _clientId);
 
-                // 创建OTA请求
+                // Create OTA request
                 var otaRequest = _otaService.CreateDefaultOtaRequest(_currentVersion, "", 
                     "xiaozhi-sharp", "xiaozhi-sharp-client");
 
-                // 发送OTA请求
+                // Send OTA request
                 _latestOtaResponse = await _otaService.CheckOtaAsync(_otaUrl, otaRequest);
 
-                // 触发OTA事件
+                // Trigger OTA event
                 if (OnOtaEvent != null)
                     await OnOtaEvent(_latestOtaResponse);
 
                 if (_latestOtaResponse != null)
                 {
-                    LogConsole.InfoLine("OTA检查完成，获取到服务器配置信息");
-                    
-                    // 显示激活信息
+                    LogConsole.InfoLine("OTA check complete, server configuration information obtained.");
+
+                    // Display activation information
                     if (_latestOtaResponse.Activation != null)
                     {
-                        LogConsole.InfoLine($"激活码: {_latestOtaResponse.Activation.Code}");
-                        LogConsole.InfoLine($"激活消息: {_latestOtaResponse.Activation.Message}");
+                        LogConsole.InfoLine($"Activation code: {_latestOtaResponse.Activation.Code}");
+                        LogConsole.InfoLine($"Activation message: {_latestOtaResponse.Activation.Message}");
                     }
 
-                    // 显示固件信息
+                    // Display firmware information
                     if (_latestOtaResponse.Firmware != null)
                     {
-                        LogConsole.InfoLine($"固件版本: {_latestOtaResponse.Firmware.Version}");
+                        LogConsole.InfoLine($"Firmware version: {_latestOtaResponse.Firmware.Version}");
                         if (!string.IsNullOrEmpty(_latestOtaResponse.Firmware.Url))
                         {
-                            LogConsole.InfoLine($"固件下载地址: {_latestOtaResponse.Firmware.Url}");
+                            LogConsole.InfoLine($"Firmware download address: {_latestOtaResponse.Firmware.Url}");
                         }
                     }
 
-                    // 显示服务器时间信息
+                    // Display server time information
                     if (_latestOtaResponse.ServerTime != null)
                     {
-                        LogConsole.InfoLine($"服务器时间: {DateTimeOffset.FromUnixTimeMilliseconds(_latestOtaResponse.ServerTime.Timestamp)}");
-                        LogConsole.InfoLine($"时区: {_latestOtaResponse.ServerTime.Timezone}");
+                        LogConsole.InfoLine($"Server time: {DateTimeOffset.FromUnixTimeMilliseconds(_latestOtaResponse.ServerTime.Timestamp)}");
+                        LogConsole.InfoLine($"Time zone: {_latestOtaResponse.ServerTime.Timezone}");
                     }
 
-                    // 显示MQTT配置信息
+                    // Display MQTT configuration information
                     if (_latestOtaResponse.Mqtt != null)
                     {
-                        LogConsole.InfoLine($"MQTT服务器: {_latestOtaResponse.Mqtt.Endpoint}");
-                        LogConsole.InfoLine($"MQTT客户端ID: {_latestOtaResponse.Mqtt.ClientId}");
+                        LogConsole.InfoLine($"MQTT server: {_latestOtaResponse.Mqtt.Endpoint}");
+                        LogConsole.InfoLine($"MQTT Client ID: {_latestOtaResponse.Mqtt.ClientId}");
                     }
 
-                    // 显示WebSocket配置信息
+                    // Display WebSocket configuration information
                     if (_latestOtaResponse.WebSocket != null)
                     {
-                        LogConsole.InfoLine($"WebSocket服务器: {_latestOtaResponse.WebSocket.Url}");
+                        LogConsole.InfoLine($"WebSocket server: {_latestOtaResponse.WebSocket.Url}");
                     }
                 }
                 else
                 {
-                    LogConsole.InfoLine("OTA检查完成，使用默认配置");
+                    LogConsole.InfoLine("OTA check complete, use default configuration.");
                 }
 
                 return _latestOtaResponse;
             }
             catch (Exception ex)
             {
-                LogConsole.ErrorLine($"OTA检查异常: {ex.Message}");
+                LogConsole.ErrorLine($"OTA check abnormal: {ex.Message}");
                 return null;
             }
         }
 
         /// <summary>
-        /// 创建包含WiFi信息的OTA请求
+        /// Create an OTA request containing WiFi information
         /// </summary>
-        /// <param name="ssid">WiFi网络名称</param>
-        /// <param name="rssi">WiFi信号强度</param>
-        /// <param name="channel">WiFi频道</param>
-        /// <param name="ip">设备IP地址</param>
+        /// <param name="ssid">WiFi network name</param>
+        /// <param name="rssi">WiFi signal strength</param>
+        /// <param name="channel">WiFi channel</param>
+        /// <param name="ip">Device IP address</param>
         /// <returns></returns>
         public async Task<OtaResponse?> CheckOtaUpdateWithWifi(string ssid, int rssi = -50, int channel = 1, string ip = "")
         {
             try
             {
-                LogConsole.InfoLine($"开始OTA检查（WiFi: {ssid}）...");
+                LogConsole.InfoLine($"Start OTA check (WiFi): {ssid}）...");
 
-                // 初始化OTA服务
+                // Initialize OTA service
                 _otaService ??= new Services.OtaService(_userAgent, _deviceId, _clientId);
 
-                // 创建包含WiFi信息的OTA请求
+                // Create an OTA request containing WiFi information
                 var otaRequest = _otaService.CreateWifiOtaRequest(_currentVersion, "", 
                     "xiaozhi-sharp-wifi", "xiaozhi-sharp-wifi-client", ssid, rssi, channel, ip);
 
                 // 发送OTA请求
                 _latestOtaResponse = await _otaService.CheckOtaAsync(_otaUrl, otaRequest);
 
-                // 触发OTA事件
+                // Trigger OTA event
                 if (OnOtaEvent != null)
                     await OnOtaEvent(_latestOtaResponse);
 
@@ -295,7 +299,7 @@ namespace XiaoZhiSharp
             }
             catch (Exception ex)
             {
-                LogConsole.ErrorLine($"OTA检查异常: {ex.Message}");
+                LogConsole.ErrorLine($"OTA check abnormal: {ex.Message}");
                 return null;
             }
         }
@@ -342,7 +346,7 @@ namespace XiaoZhiSharp
                 await _chatService.McpMessage(message);
         }
         /// <summary>
-        /// 开始录音
+        /// Start recording
         /// </summary>
         /// <param name="type">auto\manual</param>
         /// <returns></returns>
@@ -353,9 +357,9 @@ namespace XiaoZhiSharp
                if (type == "auto")
                 {
                     await _chatService.StartRecordingAuto();
-                    
-                    // 创建新的监听任务
-                    _recordingCts?.Cancel(); // 如果已有任务，先取消
+
+                    // Create a new listening task
+                    _recordingCts?.Cancel(); // If a task already exists, cancel it first.
                     _recordingCts = new CancellationTokenSource();
                     var token = _recordingCts.Token;
                     
@@ -367,21 +371,21 @@ namespace XiaoZhiSharp
                             {
                                 if (_audioService.VadCounter >= Global.VadThreshold)
                                 {
-                                    LogConsole.InfoLine($"VAD检测到静音，自动结束录音 (计数: {_audioService.VadCounter})");
+                                    LogConsole.InfoLine($"VAD detected silence and automatically ended the recording (counting).: {_audioService.VadCounter})");
                                     _audioService.StopRecording();
                                     await _chatService.StopRecording();
                                     break;
                                 }
-                                await Task.Delay(100, token); // 每0.1秒检查一次
+                                await Task.Delay(100, token); // Check once every 0.1 seconds
                             }
                         }
                         catch (TaskCanceledException)
                         {
-                            // 任务被取消，正常退出
+                            // The task was cancelled; exit normally.
                         }
                         catch (Exception ex)
                         {
-                            LogConsole.ErrorLine($"VAD监听任务异常: {ex.Message}");
+                            LogConsole.ErrorLine($"VAD monitoring task error: {ex.Message}");
                         }
                     }, token); 
                 }
@@ -396,7 +400,7 @@ namespace XiaoZhiSharp
         {
             if (_audioService != null)
             {
-                // 取消VAD监听任务
+                // Cancel VAD monitoring task
                 _recordingCts?.Cancel();
                 _recordingCts?.Dispose();
                 _recordingCts = null;
@@ -405,46 +409,46 @@ namespace XiaoZhiSharp
                 await _chatService.StopRecording();
             }
         }
-        
+
         /// <summary>
-        /// 释放资源，在应用程序关闭时调用
+        /// Release resources, call this when the application closes.
         /// </summary>
         public void Dispose()
         {
             if (!_disposed)
             {
                 _disposed = true;
-                
-                // 停止VAD监听任务
+
+                // Stop VAD listening task
                 _recordingCts?.Cancel();
                 _recordingCts?.Dispose();
                 _recordingCts = null;
-                
-                // 停止录音
+
+                // Stop recording
                 if (_audioService != null && _audioService.IsRecording)
                 {
                     _audioService.StopRecording();
                 }
-                
-                // 释放音频服务
+
+                // Stop recording
                 if (_audioService is IDisposable disposableAudioService)
                 {
                     disposableAudioService.Dispose();
                 }
-                
-                // 释放WebSocket连接
+
+                // Release WebSocket connection
                 _chatService?.Dispose();
-                
-                // 释放OTA服务
+
+                // Release OTA service
                 _otaService?.Dispose();
-                
-                // 释放音频编码服务
+
+                // Release audio encoding service
                 if (_audioOpusService is IDisposable disposableOpusService)
                 {
                     disposableOpusService.Dispose();
                 }
-                
-                // GC回收
+
+                // GC recycling
                 GC.SuppressFinalize(this);
             }
         }

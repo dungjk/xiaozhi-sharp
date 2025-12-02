@@ -6,16 +6,16 @@ namespace XiaoZhiSharp_ConsoleApp.McpTools
     [McpServerToolType]
     public sealed class IotThings_Tool
     {
-        [McpServerTool, Description("开灯")]
+        [McpServerTool, Description("Turn on the lights")]
         public static string Light_ON()
         {
-            return "开灯成功";
+            return "Lights turned on successfully";
         }
 
-        [McpServerTool, Description("关灯")]
+        [McpServerTool, Description("Turn off the lights")]
         public static string Light_OFF()
         {
-            return "关灯成功";
+            return "Lights off successfully";
         }
     }
 }

@@ -1,372 +1,375 @@
-﻿using Newtonsoft.Json.Linq;
-using System;
+﻿using System;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 
-namespace XiaoZhiSharp.Protocols
+namespace XiaoZhiSharp.Protocols;
+
+public class XiaoZhi_Protocol
 {
-    public class XiaoZhi_Protocol
+    private const string KeySessionId = "session_id";
+    private const string KeyState = "state";
+    private const string KeyType = "type";
+    private const string KeyMode = "mode";
+    private const string KeyText = "text";
+
+    // 1. When a client connects to a WebSocket server, it needs to include the following headers:
+    // Authorization: Bearer<access_token>
+    // Protocol-Version: 1
+    // Device-Id: <Device MAC address>
+    // Client-Id: <Device UUID>
+
+    // 2. After a successful connection, the client sends a hello message:
+    public static string Hello(bool mcp = false, string sessionId = "")
     {
-        // 1. 客户端连接Websocket服务器时需要携带以下 headers:
-        // Authorization: Bearer<access_token>
-        // Protocol-Version: 1
-        // Device-Id: <设备MAC地址>
-        // Client-Id: <设备UUID>
-
-        // 2. 连接成功后,客户端发送hello消息:
-        public static string Hello(bool mcp=false,string sessionId = "")
+        var mcpMessage = new JsonObject
         {
-            JObject jsonObj = new JObject
+            [KeySessionId] = sessionId,
+            [KeyType] = "hello",
+            ["version"] = 1,
+            ["features"] = new JsonObject
             {
-                ["session_id"] = sessionId,
-                ["type"] = "hello",
-                ["version"] = 1,
-                ["features"] = new JObject {
-                    ["mcp"] = mcp,
-                },
-                ["transport"] = "websocket",
-                ["audio_params"] = new JObject {
-                    ["format"] = "opus",
-                    ["sample_rate"] = 24000,
-                    ["channels"] = 1,
-                    ["frame_duration"] = 60 // 单位: 毫秒
-                }
-            };
-            //string message = @"{
-            //    ""type"": ""hello"",
-            //    ""version"": 1,
-            //    ""features"": {
-            //        ""mcp"": true
-            //      },
-            //    ""transport"": ""websocket"",
-            //    ""audio_params"": {
-            //        ""format"": ""opus"",
-            //        ""sample_rate"": 24000,
-            //        ""channels"": 1,
-            //        ""frame_duration"": 60
-            //        },
-            //    ""session_id"":""<会话ID>""
-            //}";
-            //message = message.Replace("\n", "").Replace("\r", "").Replace("\r\n", "").Replace(" ", "");
-            //if (string.IsNullOrEmpty(sessionId))
-            //    message = message.Replace(",\"session_id\":\"<会话ID>\"", "");
-            //else
-            //    message = message.Replace("<会话ID>", sessionId);
-            //Console.WriteLine($"发送的消息: {message}");
-            string message = Newtonsoft.Json.JsonConvert.SerializeObject(jsonObj);
-            return message;
-        }
-
-        // 3. 服务端响应hello消息:
-        public static string Hello_Receive()
-        {
-            string message = @"{
-                ""type"": ""hello"",
-                ""transport"": ""websocket"",
-                ""audio_params"": {
-                    ""sample_rate"": 24000
-                }
-            }";
-            message = message.Replace("\n", "").Replace("\r", "").Replace("\r\n", "").Replace(" ", "");
-            //Console.WriteLine($"发送的消息: {message}");
-            return message;
-        }
-
-        // 消息类型
-
-        // 1. 语音识别相关消息
-
-        // 开始监听 监听模式: "auto": 自动停止 "manual": 手动停止 "realtime": 持续监听
-        public static string Listen_Start(string? sessionId, string mode)
-        {
-            string message = @"{
-                    ""session_id"": ""<会话ID>"",
-                    ""type"": ""listen"",
-                    ""state"": ""start"",
-                    ""mode"": ""<监听模式>""
-                }";
-            message = message.Replace("\n", "").Replace("\r", "").Replace("\r\n", "").Replace(" ", "");
-            message = message.Replace("<会话ID>", sessionId);
-            switch (mode)
+                ["mcp"] = mcp
+            },
+            ["transport"] = "websocket",
+            ["audio_params"] = new JsonObject
             {
-                case "realtime":
-                    message = message.Replace("<监听模式>", "realtime");
-                    break;
-                case "manual":
-                    message = message.Replace("<监听模式>", "manual");
-                    break;
-                default:
-                    message = message.Replace("<监听模式>", "auto");
-                    break;
+                ["format"] = "opus",
+                ["sample_rate"] = 24000,
+                ["channels"] = 1,
+                ["frame_duration"] = 60
             }
-            //Console.WriteLine($"发送的消息: {message}");
-            return message;
-        }
-
-        // 停止监听
-        public static string Listen_Stop(string? sessionId)
-        {
-            string message = @"{
-                    ""session_id"": ""<会话ID>"",
-                    ""type"": ""listen"",
-                    ""state"": ""stop""
-                }";
-            message = message.Replace("\n", "").Replace("\r", "").Replace("\r\n", "").Replace(" ", "");
-            message = message.Replace("<会话ID>", sessionId);
-            //Console.WriteLine($"发送的消息: {message}");
-            return message;
-        }
-
-        // 唤醒词检测
-        public static string Listen_Detect(string text)
-        {
-            string message = @"{
-                    ""type"": ""listen"",
-                    ""state"": ""detect"",
-                    ""text"": ""<唤醒词>""
-                }";
-            message = message.Replace("\n", "").Replace("\r", "").Replace("\r\n", "").Replace(" ", "");
-            message = message.Replace("<唤醒词>", text);
-            //Console.WriteLine($"发送的消息: {message}");
-            return message;
-        }
-
-        // 2. 语音合成相关消息
-
-        // 服务端发送的TTS状态消息:
-        // 状态类型:
-        // "start": 开始播放
-        // "stop": 停止播放  
-        // "sentence_start": 新句子开始
-        public static string TTS_Sentence_Start(string text, string? sessionId = "")
-        {
-            string message = @"{
-                    ""type"": ""tts"",
-                    ""state"": ""sentence_start"",
-                    ""text"": ""<文本内容>"",
-                    ""session_id"": ""<会话ID>""
-                }";
-            message = message.Replace("\n", "").Replace("\r", "").Replace("\r\n", "").Replace(" ", "");
-            message = message.Replace("<文本内容>", text);
-            if (string.IsNullOrEmpty(sessionId))
-                message = message.Replace(",\"session_id\":\"<会话ID>\"", "");
-            else
-                message = message.Replace("<会话ID>", sessionId);
-            //Console.WriteLine($"发送的消息: {message}");
-            return message;
-        }
-
-        public static string TTS_Sentence_End(string text = "", string? sessionId = "")
-        {
-            string message = @"{
-                    ""type"": ""tts"",
-                    ""state"": ""sentence_end"",
-                    ""text"": ""<文本内容>"",
-                    ""session_id"": ""<会话ID>""
-                }";
-            message = message.Replace("\n", "").Replace("\r", "").Replace("\r\n", "").Replace(" ", "");
-            if (string.IsNullOrEmpty(text))
-                message = message.Replace(",\"text\":\"<文本内容>\"", "");
-            else
-                message = message.Replace("<文本内容>", text);
-            if (string.IsNullOrEmpty(sessionId))
-                message = message.Replace(",\"session_id\":\"<会话ID>\"", "");
-            else
-                message = message.Replace("<会话ID>", sessionId);
-            //Console.WriteLine($"发送的消息: {message}");
-            return message;
-        }
-
-        public static string TTS_Start(string sessionId="")
-        {
-            string message = @"{
-                    ""type"": ""tts"",
-                    ""state"": ""start"",
-                    ""session_id"": ""<会话ID>""
-                }";
-            message = message.Replace("\n", "").Replace("\r", "").Replace("\r\n", "").Replace(" ", "");
-            if (string.IsNullOrEmpty(sessionId))
-                message = message.Replace(",\"session_id\":\"<会话ID>\"", "");
-            else
-                message = message.Replace("<会话ID>", sessionId);
-            //Console.WriteLine($"发送的消息: {message}");
-            return message;
-        }
-
-        public static string TTS_Stop(string sessionId="")
-        {
-            string message = @"{
-                    ""type"": ""tts"",
-                    ""state"": ""stop"",
-                    ""session_id"": ""<会话ID>""
-                }";
-            message = message.Replace("\n", "").Replace("\r", "").Replace("\r\n", "").Replace(" ", "");
-            if (string.IsNullOrEmpty(sessionId))
-                message = message.Replace(",\"session_id\":\"<会话ID>\"", "");
-            else
-                message = message.Replace("<会话ID>", sessionId);
-            //Console.WriteLine($"发送的消息: {message}");
-            return message;
-        }
-
-        public static string STT(string text, string? sessionId = "")
-        {
-            string message = @"{
-                ""type"":""stt"",
-                ""text"":""<文本内容>"",
-                ""session_id"":""<会话ID>""
-            }";
-            message = message.Replace("\n", "").Replace("\r", "").Replace("\r\n", "").Replace(" ", "");
-            message = message.Replace("<文本内容>", text);
-            if (string.IsNullOrEmpty(sessionId))
-                message = message.Replace(",\"session_id\":\"<会话ID>\"", "");
-            else
-                message = message.Replace("<会话ID>", sessionId);
-            return message;
-        }
-
-        // 3. 中止消息
-        public static string Abort()
-        {
-            string message = @"{
-                ""session_id"": ""<会话ID>"",
-                ""type"": ""abort"",
-                ""reason"": ""wake_word_detected""
-            }";
-            message = message.Replace("\n", "").Replace("\r", "").Replace("\r\n", "").Replace(" ", "");
-            message = message.Replace("<会话ID>", "");
-            //Console.WriteLine($"发送的消息: {message}");
-            return message;
-        }
-
-        // 4. IoT设备相关消息
-
-        // 设备描述
-        public static string Device_Info()
-        {
-            string message = @"{
-                ""session_id"": ""<会话ID>"",
-                ""type"": ""iot"",
-                ""descriptors"": <设备描述JSON>
-            }";
-            message = message.Replace("\n", "").Replace("\r", "").Replace("\r\n", "").Replace(" ", "");
-            //Console.WriteLine($"发送的消息: {message}");
-            return message;
-        }
-
-        // 设备状态
-        public static string Device_Status()
-        {
-            string message = @"{
-                ""session_id"": ""<会话ID>"",
-                ""type"": ""iot"",
-                ""states"": <状态JSON>
-            }";
-            message = message.Replace("\n", "").Replace("\r", "").Replace("\r\n", "").Replace(" ", "");
-            //Console.WriteLine($"发送的消息: {message}");
-            return message;
-        }
-
-        public static string Deivce_Commands(string commands= "", string sessionId="") {
-            string message = @"{
-                ""type"":""iot"",
-                ""commands"":<Commands>,
-                ""session_id"":""<会话ID>""
-            }";
-            message = message.Replace("\n", "").Replace("\r", "").Replace("\r\n", "").Replace(" ", "");
-            message = message.Replace("<会话ID>", sessionId);
-            message = message.Replace("<Commands>", commands);
-            return message;
-        }
-
-        // 5. 情感状态消息
-        // 服务端发送:
-        public static string Emotion(string emo)
-        {
-            string message = @"{
-                ""type"": ""llm"",
-                ""emotion"": ""<情感类型>""
-            }";
-            message = message.Replace("\n", "").Replace("\r", "").Replace("\r\n", "").Replace(" ", "");
-            //Console.WriteLine($"发送的消息: {message}");
-            return message;
-        }
-
-        public static string NewSessionId(int byteCount)
-        {
-            Random random = new Random();
-            byte[] bytes = new byte[byteCount];
-            random.NextBytes(bytes);
-            return BitConverter.ToString(bytes).Replace("-", "").ToLower();
-        }
-
-        public static string Heartbeat() {
-            JObject jsonObj = new JObject
-            {
-                ["type"] = "heartbeat"
-            };
-            string message = Newtonsoft.Json.JsonConvert.SerializeObject(jsonObj);
-            return message;
-        }
-
-        public static string Mcp(string msg, string? sessionId = "") {
-            JObject jsonObj = new JObject
-            {
-                ["session_id"] = sessionId,
-                ["type"] = "mcp",
-                ["payload"] = Newtonsoft.Json.JsonConvert.DeserializeObject<dynamic>(msg)
-            };
-            string message = Newtonsoft.Json.JsonConvert.SerializeObject(jsonObj);
-            return message;
-        }
-
-        //public static string Mcp_Initialize_Receive(string sessionId = "")
-        //{
-        //    JObject jsonObj = new JObject
-        //    {
-        //        ["session_id"] = sessionId,
-        //        ["type"] = "mcp",
-        //        ["payload"] = new JObject
-        //        {
-        //            ["jsonrpc"] = "2.0",
-        //            ["id"] = 1,
-        //            ["result"] = new JObject
-        //            {
-        //                ["protocolVersion"] = "2024-11-05",
-        //                ["capabilities"] = new JObject
-        //                {
-        //                    ["tools"] = new JObject { }
-        //                },
-        //                ["serverInfo"] = new JObject {
-        //                  ["name"] = "RestSharp", // 设备名称 (BOARD_NAME)
-        //                  ["version"] = "112.1.0.0" // 设备固件版本
-        //                }
-
-        //}
-        //        }
-        //    };
-        //    string message = Newtonsoft.Json.JsonConvert.SerializeObject(jsonObj);
-        //    return message;
-        //}
-
-        //二进制数据传输
-
-        //- 音频数据使用二进制帧传输
-        //- 客户端发送OPUS编码的音频数据
-        //- 服务端返回OPUS编码的TTS音频数据
-
-        //错误处理
-
-        //当发生网络错误时，客户端会收到错误消息并关闭连接。客户端需要实现重连机制。
-
-        //会话流程
-
-        //1. 建立Websocket连接
-        //2. 交换hello消息
-        //3. 开始语音交互:
-        //- 发送开始监听
-        //- 发送音频数据
-        //- 接收识别结果
-        //- 接收TTS音频
-        //4. 结束会话时关闭连接
-
+        };
+        //string message = @"{
+        //    ""type"": ""hello"",
+        //    ""version"": 1,
+        //    ""features"": {
+        //        ""mcp"": true
+        //      },
+        //    ""transport"": ""websocket"",
+        //    ""audio_params"": {
+        //        ""format"": ""opus"",
+        //        ""sample_rate"": 24000,
+        //        ""channels"": 1,
+        //        ""frame_duration"": 60
+        //        },
+        //    ""session_id"":""<Session ID>""
+        //}";
+        //message = message.Replace("\n", "").Replace("\r", "").Replace("\r\n", "").Replace(" ", "");
+        //if (string.IsNullOrEmpty(sessionId))
+        //    message = message.Replace(",\"session_id\":\"<Session ID>\"", "");
+        //else
+        //    message = message.Replace("<Session ID>", sessionId);
+        string message = ToJsonMessage(mcpMessage);
+        Console.WriteLine($"Message sent: {message}");
+        return message;
     }
+
+    // 3. The server responds with a hello message.:
+    public static string Hello_Receive()
+    {
+        var helloMessage = new JsonObject
+        {
+            [KeyType] = "hello",
+            ["transport"] = "websocket",
+            ["audio_params"] = new JsonObject
+            {
+                ["sample_rate"] = 24000
+            }
+        };
+        var message = ToJsonMessage(helloMessage);
+        Console.WriteLine($"Message sent: {message}");
+        return message;
+    }
+
+    // Message Type
+
+    // 1. Speech recognition related news
+
+    // Start listening Listening mode: "auto": Automatic stop "manual": Manual stop "realtime": Continuous monitoring
+    public static string Listen_Start(string? sessionId, string mode)
+    {
+        var modeStr = mode switch
+        {
+            "realtime" or "manual" => mode,
+            _ => "auto"
+        };
+        var listenStartMessage = new JsonObject
+        {
+            [KeySessionId] = sessionId,
+            [KeyType] = "listen",
+            [KeyState] = "start",
+            [KeyMode] = modeStr
+        };
+        var message = ToJsonMessage(listenStartMessage);
+        Console.WriteLine($"Message sent: {message}");
+        return message;
+    }
+
+    // Stop listening
+    public static string Listen_Stop(string? sessionId)
+    {
+        var listenStopMessage = new JsonObject
+        {
+            [KeySessionId] = sessionId,
+            [KeyType] = "listen",
+            [KeyState] = "stop"
+        };
+        var message = ToJsonMessage(listenStopMessage);
+        Console.WriteLine($"Message sent: {message}");
+        return message;
+    }
+
+    // wake word detection
+    public static string Listen_Detect(string text)
+    {
+        var listenDetectMessage = new JsonObject
+        {
+            [KeyType] = "listen",
+            [KeyState] = "detect",
+            [KeyText] = text
+        };
+        var message = ToJsonMessage(listenDetectMessage);
+        Console.WriteLine($"Message sent: {message}");
+        return message;
+    }
+
+    // 2. Speech synthesis related news
+
+    // TTS status message sent by the server:
+    // State type:
+    // "start": Start playing
+    // "stop": Stop playing  
+    // "sentence_start": New sentence begins
+    public static string TTS_Sentence_Start(string text, string? sessionId = "")
+    {
+        var sentenceMessage = new JsonObject
+        {
+            [KeyType] = " tts",
+            [KeyState] = "sentence_start",
+            [KeyText] = text
+        };
+        if (!string.IsNullOrEmpty(sessionId))
+        {
+            sentenceMessage[KeySessionId] = sessionId;
+        }
+        var message = ToJsonMessage(sentenceMessage);
+        Console.WriteLine($"Message sent: {message}");
+        return message;
+    }
+
+    public static string TTS_Sentence_End(string text = "", string? sessionId = "")
+    {
+        var sentenceEnd = new JsonObject
+        {
+            [KeyType] = "tts",
+            [KeyState] = "sentence_end"
+        };
+        if (!string.IsNullOrEmpty(text))
+        {
+            sentenceEnd[KeyText] = text;
+        }
+        if (!string.IsNullOrEmpty(sessionId))
+        {
+            sentenceEnd[KeySessionId] = sessionId;
+        }
+        var message = ToJsonMessage(sentenceEnd);
+        Console.WriteLine($"Message sent: {message}");
+        return message;
+    }
+
+    public static string TTS_Start(string sessionId = "")
+    {
+        var ttsStart = new JsonObject
+        {
+            [KeyType] = "tts",
+            [KeyState] = "start",
+        };
+        if (!string.IsNullOrEmpty(sessionId))
+        {
+            ttsStart[KeySessionId] = sessionId;
+        }
+        var message = ToJsonMessage(ttsStart);
+        Console.WriteLine($"Message sent: {message}");
+        return message;
+    }
+
+    public static string TTS_Stop(string sessionId = "")
+    {
+        var ttsStop = new JsonObject
+        {
+            [KeyType] = "tts",
+            [KeyState] = "stop",
+        };
+        if (!string.IsNullOrEmpty(sessionId))
+        {
+            ttsStop[KeySessionId] = sessionId;
+        }
+        var message = ToJsonMessage(ttsStop);
+        Console.WriteLine($"Message sent: {message}");
+        return message;
+    }
+
+    public static string STT(string text, string? sessionId = "")
+    {
+        var sttMessage = new JsonObject
+        {
+            [KeyType] = "stt",
+            [KeyText] = text
+        };
+        if (!string.IsNullOrEmpty(sessionId))
+        {
+            sttMessage[KeySessionId] = sessionId;
+        }
+        var message = ToJsonMessage(sttMessage);
+        return message;
+    }
+
+    // 3. Suspension Announcement
+    public static string Abort()
+    {
+        var abortMessage = new JsonObject
+        {
+            [KeyType] = "abort",
+            ["reason"] = "wake_word_detected"
+        };
+        var message = ToJsonMessage(abortMessage);
+        Console.WriteLine($"Message sent: {message}");
+        return message;
+    }
+
+    // 4. News related to IoT devices
+
+    // Equipment Description
+    public static string Device_Info()
+    {
+        var deviceInfoMessage = new JsonObject
+        {
+            [KeyType] = "iot",
+            [KeySessionId] = "<Session ID>",
+            ["sescriptors"] = "<Device description JSON>"
+        };
+        var message = ToJsonMessage(deviceInfoMessage);
+        Console.WriteLine($"Message sent: {message}");
+        return message;
+    }
+
+    // Equipment status
+    public static string Device_Status()
+    {
+        var deviceStatusMessage = new JsonObject
+        {
+            [KeyType] = "iot",
+            [KeySessionId] = "<Session ID>",
+            ["descriptors"] = "<Status JSON>"
+        };
+        var message = ToJsonMessage(deviceStatusMessage);
+        Console.WriteLine($"Message sent: {message}");
+        return message;
+    }
+
+    public static string Deivce_Commands(string commands = "", string sessionId = "")
+    {
+        var deviceCommandMsg = new JsonObject
+        {
+            [KeyType] = "iot",
+            ["commands"] = commands,
+            [KeySessionId] = sessionId
+        };
+        var message = ToJsonMessage(deviceCommandMsg);
+        return message;
+    }
+
+    // 5. Emotional status messages
+    // Server sends:
+    public static string Emotion(string emo)
+    {
+        var emotionMsg = new JsonObject
+        {
+            [KeyType] = "llm",
+            ["emotion"] = "<Emotional type>"
+        };
+        return ToJsonMessage(emotionMsg);
+    }
+
+    public static string NewSessionId(int byteCount)
+    {
+        Random random = new Random();
+        byte[] bytes = new byte[byteCount];
+        random.NextBytes(bytes);
+        return BitConverter.ToString(bytes).Replace("-", "").ToLower();
+    }
+
+    public static string Heartbeat()
+    {
+        var heartbeatMsg = new JsonObject
+        {
+            [KeyType] = "heartbeat"
+        };
+        return ToJsonMessage(heartbeatMsg);
+    }
+
+    public static string Mcp(string msg, string? sessionId = "")
+    {
+        var mcpMessage = new JsonObject
+        {
+            [KeyType] = "mcp",
+            [KeySessionId] = sessionId,
+            ["payload"] = JsonNode.Parse(msg)
+        };
+        return ToJsonMessage(mcpMessage);
+    }
+
+    private static string ToJsonMessage(JsonNode node) => node.ToJsonString(new JsonSerializerOptions
+    {
+        WriteIndented = false
+    });
+
+    //public static string Mcp_Initialize_Receive(string sessionId = "")
+    //{
+    //    JObject jsonObj = new JObject
+    //    {
+    //        ["session_id"] = sessionId,
+    //        ["type"] = "mcp",
+    //        ["payload"] = new JObject
+    //        {
+    //            ["jsonrpc"] = "2.0",
+    //            ["id"] = 1,
+    //            ["result"] = new JObject
+    //            {
+    //                ["protocolVersion"] = "2024-11-05",
+    //                ["capabilities"] = new JObject
+    //                {
+    //                    ["tools"] = new JObject { }
+    //                },
+    //                ["serverInfo"] = new JObject {
+    //                  ["name"] = "RestSharp", // Equipment Name (BOARD_NAME)
+    //                  ["version"] = "112.1.0.0" // Device firmware version
+    //                }
+
+    //}
+    //        }
+    //    };
+    //    string message = Newtonsoft.Json.JsonConvert.SerializeObject(jsonObj);
+    //    return message;
+    //}
+
+    //Binary data transmission
+
+    //- Audio data is transmitted using binary frames
+    //- The client sends OPUS-encoded audio data
+    //- The server returns OPUS-encoded TTS audio data
+
+    //Error Handling
+    //When a network error occurs, the client will receive an error message and close the connection. The client needs to implement a reconnection mechanism.
+
+    //Session Flow
+    //1. Establish a WebSocket connection
+    //2. Exchange hello messages
+    //3. Start voice interaction:
+    //- Send "Start Listening"
+    //- Send audio data
+    //- Receive recognition results
+    //- Receive TTS audio
+    //4. Close the connection when ending the session
+
 }

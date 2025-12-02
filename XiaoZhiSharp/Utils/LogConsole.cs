@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace XiaoZhiSharp.Utils
 {
-    // 消息类型枚举
+    // Message type enumeration
     public enum MessageType
     {
         Send,
@@ -17,11 +17,11 @@ namespace XiaoZhiSharp.Utils
         Erro
     }
 
-    // 日志控制台类
+    // Log console class
     public class LogConsole
     {
         public static bool IsWrite {get;set;} = true;
-        // 记录消息并换行的方法
+        // Methods for recording messages and adding line breaks
         public static void WriteLine(MessageType type, string message)
         {
             WriteMessage(type, message, true);
@@ -32,7 +32,7 @@ namespace XiaoZhiSharp.Utils
             WriteMessage(MessageType.Info, message, true);
         }
 
-        // 记录消息但不换行的方法
+        // Methods to record messages without adding newlines
         public static void Write(MessageType type, string message)
         {
             WriteMessage(type, message, false);
@@ -42,7 +42,7 @@ namespace XiaoZhiSharp.Utils
             WriteMessage(MessageType.Info, message, false);
         }
 
-        // 私有方法，用于处理消息的输出，封装公共逻辑
+        // Private methods are used to handle message output and encapsulate public logic.
         private static void WriteMessage(MessageType type, string message, bool isNewLine)
         {
             if (!Global.IsDebug)
@@ -55,13 +55,13 @@ namespace XiaoZhiSharp.Utils
 
             try
             {
-                // 根据消息类型设置控制台前景色
+                // Set the console foreground color according to the message type.
                 SetConsoleColor(type);
 
-                // 格式化消息
+                // Formatted messages
                 string formattedMessage = FormatMessage(type, Regex.Unescape(message));
 
-                // 根据是否换行选择输出方式
+                // Select the output method based on whether a line break is needed.
                 if (isNewLine)
                 {
                     Console.WriteLine(formattedMessage);
@@ -73,12 +73,12 @@ namespace XiaoZhiSharp.Utils
             }
             finally
             {
-                // 恢复控制台原始颜色
+                // Restore console to its original color
                 Console.ForegroundColor = originalColor;
             }
         }
 
-        // 私有方法，根据消息类型设置控制台前景色
+        // A private method to set the console foreground color based on the message type.
         private static void SetConsoleColor(MessageType type)
         {
             switch (type)
@@ -99,73 +99,73 @@ namespace XiaoZhiSharp.Utils
                     Console.ForegroundColor = ConsoleColor.Red;
                     break;
                 default:
-                    // 若消息类型未匹配，使用默认的灰色
+                    // If the message type does not match, the default gray area will be used.
                     Console.ForegroundColor = ConsoleColor.Gray;
                     break;
             }
         }
 
-        // 私有方法，格式化消息，添加时间戳和消息类型
+        // Private method, format message, add timestamp and message type
         private static string FormatMessage(MessageType type, string message)
         {
             return $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.ffff}] [{type}] {message}";
         }
 
-        // 快捷方法：发送消息并换行
+        // Shortcut: Send a message and add a newline.
         public static void SendLine(string message)
         {
             WriteLine(MessageType.Send, message);
         }
 
-        // 快捷方法：发送消息不换行
+        // Quick method: Send messages without line breaks
         public static void Send(string message)
         {
             Write(MessageType.Send, message);
         }
 
-        // 快捷方法：接收消息并换行
+        // Shortcut: Receive message and add a newline
         public static void ReceiveLine(string message)
         {
             WriteLine(MessageType.Recv, message);
         }
 
-        // 快捷方法：接收消息不换行
+        // Quick method: Receive messages without line breaks
         public static void Receive(string message)
         {
             Write(MessageType.Recv, message);
         }
 
-        // 快捷方法：记录信息并换行
+        // Quick method: Record the information and add a line break.
         public static void InfoLine(string message)
         {
             WriteLine(MessageType.Info, message);
         }
 
-        // 快捷方法：记录信息不换行
+        // Quick method: Record information without line breaks
         public static void Info(string message)
         {
             Write(MessageType.Info, message);
         }
 
-        // 快捷方法：记录警告并换行
+        // Shortcut: Record the warning and add a newline.
         public static void WarningLine(string message)
         {
             WriteLine(MessageType.Warn, message);
         }
 
-        // 快捷方法：记录警告不换行
+        // Quick method: Record warnings without line breaks
         public static void Warning(string message)
         {
             Write(MessageType.Warn, message);
         }
 
-        // 快捷方法：记录错误并换行
+        // Quick method: Record the error and add a newline.
         public static void ErrorLine(string message)
         {
             WriteLine(MessageType.Erro, message);
         }
 
-        // 快捷方法：记录错误不换行
+        // Quick method: Record errors without line breaks
         public static void Error(string message)
         {
             Write(MessageType.Erro, message);

@@ -1,135 +1,154 @@
-﻿using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace XiaoZhiSharp.Models
 {
     /// <summary>
-    /// OTA请求模型
+    /// OTA Request Model
     /// </summary>
     public class OtaRequest
     {
-        [JsonProperty("application")]
+        [JsonPropertyName("application")]
         public ApplicationInfo Application { get; set; } = new ApplicationInfo();
 
-        [JsonProperty("mac_address", NullValueHandling = NullValueHandling.Ignore)]
+        [JsonPropertyName("mac_address")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? MacAddress { get; set; }
 
-        [JsonProperty("uuid", NullValueHandling = NullValueHandling.Ignore)]
+        [JsonPropertyName("uuid")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? Uuid { get; set; }
 
-        [JsonProperty("chip_model_name", NullValueHandling = NullValueHandling.Ignore)]
+        [JsonPropertyName("chip_model_name")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? ChipModelName { get; set; }
 
-        [JsonProperty("flash_size", NullValueHandling = NullValueHandling.Ignore)]
+        [JsonPropertyName("flash_size")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public long? FlashSize { get; set; }
 
-        [JsonProperty("psram_size", NullValueHandling = NullValueHandling.Ignore)]
+        [JsonPropertyName("psram_size")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public long? PsramSize { get; set; }
 
-        [JsonProperty("partition_table", NullValueHandling = NullValueHandling.Ignore)]
+        [JsonPropertyName("partition_table")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public List<PartitionInfo>? PartitionTable { get; set; }
 
-        [JsonProperty("board")]
+        [JsonPropertyName("board")]
         public BoardInfo Board { get; set; } = new BoardInfo();
 
-        [JsonProperty("version", NullValueHandling = NullValueHandling.Ignore)]
+        [JsonPropertyName("version")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public int? Version { get; set; }
 
-        [JsonProperty("language", NullValueHandling = NullValueHandling.Ignore)]
+        [JsonPropertyName("language")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? Language { get; set; }
 
-        [JsonProperty("minimum_free_heap_size", NullValueHandling = NullValueHandling.Ignore)]
+        [JsonPropertyName("minimum_free_heap_size")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public long? MinimumFreeHeapSize { get; set; }
 
-        [JsonProperty("ota", NullValueHandling = NullValueHandling.Ignore)]
+        [JsonPropertyName("ota")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public OtaInfo? Ota { get; set; }
     }
 
     /// <summary>
-    /// 应用程序信息
+    /// Application Information
     /// </summary>
     public class ApplicationInfo
     {
-        [JsonProperty("name", NullValueHandling = NullValueHandling.Ignore)]
+        [JsonPropertyName("name")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? Name { get; set; } = "xiaozhi";
 
-        [JsonProperty("version")]
+        [JsonPropertyName("version")]
         public string Version { get; set; } = "1.0.0";
 
-        [JsonProperty("elf_sha256")]
+        [JsonPropertyName("elf_sha256")]
         public string ElfSha256 { get; set; } = "";
 
-        [JsonProperty("compile_time", NullValueHandling = NullValueHandling.Ignore)]
+        [JsonPropertyName("compile_time")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? CompileTime { get; set; }
 
-        [JsonProperty("idf_version", NullValueHandling = NullValueHandling.Ignore)]
+        [JsonPropertyName("idf_version")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? IdfVersion { get; set; }
     }
 
     /// <summary>
-    /// 分区信息
+    /// Partition information
     /// </summary>
     public class PartitionInfo
     {
-        [JsonProperty("label")]
+        [JsonPropertyName("label")]
         public string Label { get; set; } = "";
 
-        [JsonProperty("type")]
+        [JsonPropertyName("type")]
         public int Type { get; set; }
 
-        [JsonProperty("subtype")]
+        [JsonPropertyName("subtype")]
         public int Subtype { get; set; }
 
-        [JsonProperty("address")]
+        [JsonPropertyName("address")]
         public long Address { get; set; }
 
-        [JsonProperty("size")]
+        [JsonPropertyName("size")]
         public long Size { get; set; }
     }
 
     /// <summary>
-    /// 开发板信息
+    /// Development board information
     /// </summary>
     public class BoardInfo
     {
-        [JsonProperty("type")]
+        [JsonPropertyName("type")]
         public string Type { get; set; } = "";
 
-        [JsonProperty("name")]
+        [JsonPropertyName("name")]
         public string Name { get; set; } = "";
 
-        [JsonProperty("ssid", NullValueHandling = NullValueHandling.Ignore)]
+        [JsonPropertyName("ssid")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? Ssid { get; set; }
 
-        [JsonProperty("rssi", NullValueHandling = NullValueHandling.Ignore)]
+        [JsonPropertyName("rssi")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public int? Rssi { get; set; }
 
-        [JsonProperty("channel", NullValueHandling = NullValueHandling.Ignore)]
+        [JsonPropertyName("channel")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public int? Channel { get; set; }
 
-        [JsonProperty("ip", NullValueHandling = NullValueHandling.Ignore)]
+        [JsonPropertyName("ip")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? Ip { get; set; }
 
-        [JsonProperty("mac", NullValueHandling = NullValueHandling.Ignore)]
+        [JsonPropertyName("mac")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? Mac { get; set; }
 
-        [JsonProperty("revision", NullValueHandling = NullValueHandling.Ignore)]
+        [JsonPropertyName("revision")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? Revision { get; set; }
 
-        [JsonProperty("carrier", NullValueHandling = NullValueHandling.Ignore)]
+        [JsonPropertyName("carrier")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? Carrier { get; set; }
 
-        [JsonProperty("csq", NullValueHandling = NullValueHandling.Ignore)]
+        [JsonPropertyName("csq")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? Csq { get; set; }
 
-        [JsonProperty("imei", NullValueHandling = NullValueHandling.Ignore)]
+        [JsonPropertyName("imei")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? Imei { get; set; }
 
-        [JsonProperty("iccid", NullValueHandling = NullValueHandling.Ignore)]
+        [JsonPropertyName("iccid")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? Iccid { get; set; }
     }
 
@@ -138,109 +157,114 @@ namespace XiaoZhiSharp.Models
     /// </summary>
     public class OtaInfo
     {
-        [JsonProperty("label")]
+        [JsonPropertyName("label")]
         public string Label { get; set; } = "";
     }
 
     /// <summary>
-    /// OTA响应模型
+    /// OTA response model
     /// </summary>
     public class OtaResponse
     {
-        [JsonProperty("activation", NullValueHandling = NullValueHandling.Ignore)]
+        [JsonPropertyName("activation")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public ActivationInfo? Activation { get; set; }
 
-        [JsonProperty("mqtt", NullValueHandling = NullValueHandling.Ignore)]
+        [JsonPropertyName("mqtt")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public MqttInfo? Mqtt { get; set; }
 
-        [JsonProperty("websocket", NullValueHandling = NullValueHandling.Ignore)]
+        [JsonPropertyName("websocket")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public WebSocketInfo? WebSocket { get; set; }
 
-        [JsonProperty("server_time", NullValueHandling = NullValueHandling.Ignore)]
+        [JsonPropertyName("server_time")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public ServerTimeInfo? ServerTime { get; set; }
 
-        [JsonProperty("firmware", NullValueHandling = NullValueHandling.Ignore)]
+        [JsonPropertyName("firmware")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public FirmwareInfo? Firmware { get; set; }
     }
 
     /// <summary>
-    /// 激活信息
+    /// Activation information
     /// </summary>
     public class ActivationInfo
     {
-        [JsonProperty("code")]
+        [JsonPropertyName("code")]
         public string Code { get; set; } = "";
 
-        [JsonProperty("message")]
+        [JsonPropertyName("message")]
         public string Message { get; set; } = "";
     }
 
     /// <summary>
-    /// MQTT配置信息
+    /// MQTT configuration information
     /// </summary>
     public class MqttInfo
     {
-        [JsonProperty("endpoint")]
+        [JsonPropertyName("endpoint")]
         public string Endpoint { get; set; } = "";
 
-        [JsonProperty("client_id")]
+        [JsonPropertyName("client_id")]
         public string ClientId { get; set; } = "";
 
-        [JsonProperty("username")]
+        [JsonPropertyName("username")]
         public string Username { get; set; } = "";
 
-        [JsonProperty("password")]
+        [JsonPropertyName("password")]
         public string Password { get; set; } = "";
 
-        [JsonProperty("publish_topic")]
+        [JsonPropertyName("publish_topic")]
         public string PublishTopic { get; set; } = "";
     }
 
     /// <summary>
-    /// WebSocket配置信息
+    /// WebSocket configuration information
     /// </summary>
     public class WebSocketInfo
     {
-        [JsonProperty("url")]
+        [JsonPropertyName("url")]
         public string Url { get; set; } = "";
 
-        [JsonProperty("token")]
+        [JsonPropertyName("token")]
         public string Token { get; set; } = "";
     }
 
     /// <summary>
-    /// 服务器时间信息
+    /// Server time information
     /// </summary>
     public class ServerTimeInfo
     {
-        [JsonProperty("timestamp")]
+        [JsonPropertyName("timestamp")]
         public long Timestamp { get; set; }
 
-        [JsonProperty("timezone")]
+        [JsonPropertyName("timezone")]
         public string Timezone { get; set; } = "";
 
-        [JsonProperty("timezone_offset")]
+        [JsonPropertyName("timezone_offset")]
         public int TimezoneOffset { get; set; }
     }
 
     /// <summary>
-    /// 固件信息
+    /// Firmware information
     /// </summary>
     public class FirmwareInfo
     {
-        [JsonProperty("version")]
+        [JsonPropertyName("version")]
         public string Version { get; set; } = "";
 
-        [JsonProperty("url")]
+        [JsonPropertyName("url")]
         public string Url { get; set; } = "";
     }
 
     /// <summary>
-    /// OTA错误响应
+    /// OTA Error Response
     /// </summary>
     public class OtaErrorResponse
     {
-        [JsonProperty("error")]
+        [JsonPropertyName("error")]
         public string Error { get; set; } = "";
     }
 }
